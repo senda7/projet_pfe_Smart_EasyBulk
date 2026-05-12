@@ -923,7 +923,7 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
           </thead>
           <tbody id="caTbody"></tbody>
         </table>
-        <div id="caEmpty" class="empty" style="display:none"><div class="empty-icon">📒</div>Aucun contact trouvé</div>
+        <div id="caEmpty" class="empty" style="display:none"><div class="empty-icon">📒</div><span id="caEmptyMsg">Aucun contact trouvé</span></div>
       </div>
 
       <!-- Pagination -->
@@ -1636,6 +1636,9 @@ async function reloadCaContacts(){
     console.log('Contacts chargés:', caContacts.length);
   }catch(e){
     console.warn('reloadCaContacts failed:', e.message);
+    caContacts = [];
+    const msg = document.getElementById('caEmptyMsg');
+    if (msg) msg.innerHTML = '❌ API SMS hors ligne — contacts non disponibles.<br><small style="color:var(--muted)">Relancez le serveur puis rafraîchissez la page.</small>';
   }
   caFilter();
 }
@@ -2489,9 +2492,10 @@ async function gpRefreshAll() {
     showToast('✅ ' + GP_DATA.length + ' groupes chargés (ML en direct)');
   } catch (e) {
     console.error('[gpRefreshAll] API échouée :', e);
-    gpRenderTable();   // fallback : affiche les mock GP_DATA d'origine
+    GP_DATA.length = 0;
+    gpRenderTable();
     _gpLoaded = true;
-    showToast('⚠ API inaccessible — affichage des données par défaut');
+    showToast('❌ API BUDGET hors ligne — vérifiez http://127.0.0.1:5000');
   } finally {
     if (loader) loader.style.display = 'none';
     if (btn)    { btn.disabled = false; btn.innerHTML = '↺ Rafraîchir'; }
@@ -2501,6 +2505,10 @@ async function gpRefreshAll() {
 function gpRenderTable() {
   const tbody = document.getElementById('gpTbody');
   if (!tbody) return;
+  if (GP_DATA.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="gp-empty">❌ API Budget hors ligne — aucune donnée disponible.<br><small style="color:var(--muted)">Démarrez le serveur puis cliquez sur <strong>Rafraîchir</strong>.</small></td></tr>';
+    return;
+  }
   tbody.innerHTML = GP_DATA.map(g => {
     const r    = gpRisque(g);
     const rCls = r === 'SAFE' ? 'risk-safe' : r === 'DANGER' ? 'risk-danger' : 'risk-critical';
