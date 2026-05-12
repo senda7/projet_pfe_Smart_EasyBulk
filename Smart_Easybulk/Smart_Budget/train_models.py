@@ -1,27 +1,3 @@
-"""
-╔══════════════════════════════════════════════════════════════════╗
-║  03_train_model.py                                               ║
-║                                                                  ║
-║  RÔLE : Entraîner le modèle Random Forest sur l'historique       ║
-║         de consommation de chaque groupe.                        ║
-║         Le modèle apprend la relation entre les features         ║
-║         (consommation passée, tendance, activité campagnes…)     ║
-║         et la consommation future réelle.                        ║
-║                                                                  ║
-║  ENTRÉE  → output/features.csv                                   ║
-║            output/feature_cols.json                              ║
-║                                                                  ║
-║  SORTIE  → output/model_rf_7j.pkl     (modèle horizon 7 jours)  ║
-║            output/model_rf_14j.pkl    (modèle horizon 14 jours) ║
-║            output/model_rf_30j.pkl    (modèle horizon 30 jours) ║
-║            output/training_report.txt (résultats complets)       ║
-║                                                                  ║
-║  SPLIT TEMPOREL (aucune fuite de données)                        ║
-║    Train :  Jan 2024  →  Sep 2025   (toutes les semaines passées)║
-║    Test  :  Oct 2025  →  Déc 2025   (12 semaines non vues)       ║
-╚══════════════════════════════════════════════════════════════════╝
-"""
-
 import os, json, joblib
 import pandas as pd
 import numpy  as np

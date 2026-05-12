@@ -1,9 +1,10 @@
 """
-api.py  — Budget ML  ↔  v3_enhanced.html
+api.py  — Budget ML  ↔  test_easybulk.html   VERSION CORRIGÉE
 ──────────────────────────────────────────────────────────────────
-USAGE :
-    pip install flask flask-cors pymysql
-    python api.py
+CORRECTION :
+  • Au démarrage, sync clean_groupes.json depuis MySQL
+    → predict.py voit les vrais groupes (Prisons Nord/Centre/Sud...)
+    → plus de groupes statiques Marketing/RH/Commercial
 
 ENDPOINTS :
     GET  /groupes          → liste groupes + prédictions ML
@@ -22,7 +23,7 @@ from flask_cors import CORS
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 
-from predict import charger_ressources, predire
+from predict import charger_ressources, predire, _cache as predict_cache
 from config  import ALPHA_PRUDENT
 
 app  = Flask(__name__)
@@ -32,14 +33,14 @@ OUT  = os.path.join(BASE, "output")
 DATA = os.path.join(BASE, "data")
 
 # ════════════════════════════════════════════════════════════════
-# CONFIG MYSQL (adapter selon ton XAMPP)
+# CONFIG MYSQL
 # ════════════════════════════════════════════════════════════════
 DB_CONFIG = {
     "host"    : "localhost",
     "port"    : 3306,
-    "user"    : "root",        # utilisateur XAMPP par défaut
-    "password": "",            # mot de passe XAMPP (vide par défaut)
-    "database": "easybulk",    # nom de ta base de données
+    "user"    : "root",
+    "password": "",
+    "database": "easybulk",
     "charset" : "utf8mb4",
 }
 
@@ -52,6 +53,58 @@ def get_db():
     except Exception as e:
         print(f"  ⚠  MySQL inaccessible : {e}")
         return None
+
+
+# ════════════════════════════════════════════════════════════════
+# SYNC MySQL → clean_groupes.json  (FIX PRINCIPAL)
+# ════════════════════════════════════════════════════════════════
+
+def sync_clean_groupes_from_mysql():
+    """
+    Lit les groupes depuis MySQL et écrase clean_groupes.json.
+    Appelé au démarrage de l'API → predict.py voit les vrais groupes.
+    """
+    conn = get_db()
+    if not conn:
+        print("  ⚠  sync_clean_groupes : MySQL inaccessible, clean_groupes.json inchangé")
+        return False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, description,
+                       quota, quotaLoked, quotaFree,
+                       status_id, organization_id, admin_id
+                FROM groupe
+                ORDER BY id
+            """)
+            rows = cur.fetchall()
+
+        if not rows:
+            print("  ⚠  sync_clean_groupes : table groupe vide")
+            return False
+
+        # Construire le DataFrame compatible avec predict.py
+        df = pd.DataFrame(rows)
+        df["est_actif"]  = (df["status_id"] == 1).astype(int)
+        # predict.py utilise quotaLoked / quotaFree (camelCase)
+        if "quotaLoked" not in df.columns:
+            df["quotaLoked"] = df.get("quota_loked", 0)
+        if "quotaFree" not in df.columns:
+            df["quotaFree"]  = df["quota"] - df["quotaLoked"]
+
+        os.makedirs(OUT, exist_ok=True)
+        clean_path = os.path.join(OUT, "clean_groupes.json")
+        df.to_json(clean_path, orient="records", force_ascii=False, indent=2)
+        print(f"  ✓  clean_groupes.json synchro depuis MySQL ({len(df)} groupes)")
+        for _, r in df.iterrows():
+            print(f"      #{int(r['id'])} {str(r['name']):<22}  quota={int(r['quota']):>8}  libre={int(r.get('quotaFree', r['quota'])):>8}")
+        return True
+
+    except Exception as e:
+        print(f"  ⚠  sync_clean_groupes erreur : {e}")
+        return False
+    finally:
+        conn.close()
 
 
 # ════════════════════════════════════════════════════════════════
@@ -100,31 +153,25 @@ def _evenements(p30):
 def _build_groupe(row, res):
     """
     Construit l'objet groupe complet renvoyé au HTML.
-
-    PRINCIPE : api.py ne calcule rien. Toutes les valeurs (quota, conso,
-    risque, A_min, A_reco, J→0…) viennent directement de predict.py.
-    api.py n'est qu'une passerelle vers le HTML.
+    Toutes les valeurs viennent de predict.py (quota réel via cumsum).
+    Si predict.py échoue (groupe sans features), on utilise les données MySQL.
     """
     gid       = int(row["id"])
     est_actif = int(row.get("est_actif", 1)) == 1
 
-    # 1. Appelle predict.py sur les 3 horizons
+    # 1. Prédictions ML via predict.py
     p7  = _predire_safe(gid,  7)
     p14 = _predire_safe(gid, 14)
     p30 = _predire_safe(gid, 30)
     prud   = _conso_prudente(gid, res)
     risque = p30.get("niveau_risque", "SAFE")
 
-    # 2. Quotas : on PREND ce que predict.py renvoie (valeurs réelles
-    #    calculées via cumsum + plancher 0 sur budget_history).
-    #    Sans ce mapping, api.py enverrait des valeurs statiques 2023
-    #    incohérentes avec les J→0 calculés à partir du quota réel.
+    # 2. Quotas — depuis predict.py si disponible, sinon MySQL direct
     if p30 and "quota_libre" in p30:
         quota_total = int(p30.get("quota_total",      row.get("quota", 0)))
         quota_libre = int(p30.get("quota_libre",      0))
         quota_verr  = int(p30.get("quota_verrouille", 0))
     else:
-        # Fallback si predict.py a échoué (ex: features manquantes)
         quota_total = int(row.get("quota", 0))
         quota_verr  = int(row.get("quotaLoked", 0))
         quota_libre = quota_total - quota_verr
@@ -163,7 +210,6 @@ def _build_groupe(row, res):
 # ════════════════════════════════════════════════════════════════
 
 def _lire_groupes_json():
-    """Lit data/groupes.json (fichier source du pipeline Python)."""
     path = os.path.join(DATA, "groupes.json")
     if not os.path.exists(path):
         return []
@@ -171,13 +217,11 @@ def _lire_groupes_json():
         return json.load(f)
 
 def _ecrire_groupes_json(data):
-    """Écrit data/groupes.json et régénère clean_groupes.json."""
     os.makedirs(DATA, exist_ok=True)
     path = os.path.join(DATA, "groupes.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # Régénérer clean_groupes.json en mémoire (version simplifiée)
     df = pd.DataFrame(data)
     if "status_id" in df.columns:
         df["est_actif"] = (df["status_id"] == 1).astype(int)
@@ -189,7 +233,6 @@ def _ecrire_groupes_json(data):
     os.makedirs(OUT, exist_ok=True)
     df.to_json(clean_path, orient="records", force_ascii=False, indent=2)
     print(f"  ✓  clean_groupes.json mis à jour ({len(df)} groupes)")
-
 
 def _prochain_id_json():
     groupes = _lire_groupes_json()
@@ -203,10 +246,6 @@ def _prochain_id_json():
 
 @app.route("/", methods=["GET"])
 def index():
-    """
-    Page d'accueil — confirme que l'API tourne.
-    Ouvrir v3_enhanced.html dans le navigateur, pas cette URL.
-    """
     return """
     <html><head><title>Budget ML API</title>
     <style>
@@ -227,7 +266,7 @@ def index():
       <h2>Budget ML API</h2>
       <p style="color:#5a7399;margin-bottom:1.5rem">
         L'API tourne correctement.<br>
-        Ouvre <strong>interface.html</strong> dans ton navigateur.
+        Ouvre <strong>test_easybulk.html</strong> dans ton navigateur.
       </p>
       <div style="text-align:left">
         <span class="ep">GET  /groupes</span>
@@ -242,17 +281,7 @@ def index():
 
 @app.route("/groupes", methods=["GET"])
 def get_groupes():
-    """
-    Liste complète des groupes avec prédictions ML.
-
-    SOURCE DES DONNÉES :
-      • Liste des groupes  →  MySQL (source de vérité)
-      • Prédictions ML     →  predict.py (via _build_groupe)
-
-    Si MySQL est éteint, fallback sur predict.py (clean_groupes.json).
-    """
     try:
-        # 1. Liste des groupes : MySQL d'abord, sinon fallback JSON
         rows = []
         conn = get_db()
         if conn:
@@ -263,18 +292,16 @@ def get_groupes():
                                quota, quotaLoked, quotaFree,
                                status_id, organization_id, admin_id
                         FROM groupe
-                        WHERE status_id = 1   -- actifs uniquement
+                        WHERE status_id = 1
                         ORDER BY id
                     """)
-                    rows = cur.fetchall()  # DictCursor → liste de dicts
-                # Ajoute le champ 'est_actif' attendu par _build_groupe
+                    rows = cur.fetchall()
                 for r in rows:
                     r["est_actif"] = 1
             finally:
                 conn.close()
             print(f"  ·  {len(rows)} groupes lus depuis MySQL")
         else:
-            # Fallback JSON si XAMPP éteint
             print("  ⚠  MySQL inaccessible → fallback clean_groupes.json")
             res_fb = charger_ressources()
             df_fb  = res_fb["df_groupes"]
@@ -282,10 +309,8 @@ def get_groupes():
                 df_fb = df_fb[df_fb["est_actif"] == 1]
             rows = df_fb.to_dict("records")
 
-        # 2. Ressources ML (toujours via predict.py)
         res = charger_ressources()
 
-        # 3. Pour chaque groupe : enrichi avec prédictions ML
         result = []
         for row in rows:
             g = _build_groupe(row, res)
@@ -300,16 +325,6 @@ def get_groupes():
 
 @app.route("/groupes", methods=["POST"])
 def post_groupe():
-    """
-    Crée un nouveau groupe.
-    1. Tente de l'enregistrer dans MySQL (XAMPP).
-    2. Met à jour data/groupes.json + output/clean_groupes.json.
-    3. Retourne le groupe créé avec id.
-
-    Body JSON attendu :
-      { nom, budget, description, administrateur,
-        enteteAlpha: [...], typesCampagne: [...] }
-    """
     body = request.get_json(force=True) or {}
 
     nom    = (body.get("nom") or "").strip()
@@ -323,7 +338,6 @@ def post_groupe():
     new_id   = None
     mysql_ok = False
 
-    # ── Tentative MySQL ────────────────────────────────────────
     conn = get_db()
     if conn:
         try:
@@ -342,12 +356,11 @@ def post_groupe():
         finally:
             conn.close()
 
-    # ── Fallback JSON local ────────────────────────────────────
     if not mysql_ok:
         new_id = _prochain_id_json()
         print(f"  ·  MySQL indisponible → JSON local (id={new_id})")
 
-    # ── Mise à jour data/groupes.json ─────────────────────────
+    # Mettre à jour data/groupes.json ET resync clean_groupes.json
     groupes = _lire_groupes_json()
     nouveau = {
         "id"         : new_id,
@@ -358,14 +371,15 @@ def post_groupe():
         "status_id"  : 1,
         "description": desc,
     }
-    # Éviter les doublons si déjà inséré via MySQL
     if not any(g.get("id") == new_id for g in groupes):
         groupes.append(nouveau)
         _ecrire_groupes_json(groupes)
 
-    # ── Invalider le cache de predict.py ─────────────────────
-    from predict import _cache
-    _cache.clear()
+    # Resync clean_groupes.json depuis MySQL (inclut le nouveau groupe)
+    sync_clean_groupes_from_mysql()
+
+    # Invalider le cache de predict.py → sera rechargé au prochain appel
+    predict_cache.clear()
 
     return jsonify({
         "status"   : "ok",
@@ -397,10 +411,8 @@ def post_groupe():
 
 @app.route("/groupes/<int:gid>", methods=["GET"])
 def get_groupe_detail(gid):
-    """Détail d'un groupe — lit l'identité depuis MySQL, les prédictions via predict.py."""
     try:
         row = None
-        # 1. Identité du groupe : MySQL d'abord
         conn = get_db()
         if conn:
             try:
@@ -417,7 +429,6 @@ def get_groupe_detail(gid):
             finally:
                 conn.close()
 
-        # 2. Fallback JSON si MySQL down ou groupe absent
         res = charger_ressources()
         if not row:
             df = res["df_groupes"]
@@ -458,7 +469,7 @@ def health():
 if __name__ == "__main__":
     print()
     print("╔══════════════════════════════════════════════════════╗")
-    print("║   API Budget ML  ←→  interface.html                  ║")
+    print("║   API Budget ML  ←→  test_easybulk.html              ║")
     print("╠══════════════════════════════════════════════════════╣")
     print("║  GET  /groupes      → liste ML                       ║")
     print("║  POST /groupes      → créer groupe (MySQL + JSON)    ║")
@@ -467,12 +478,11 @@ if __name__ == "__main__":
     print("╚══════════════════════════════════════════════════════╝")
     print()
 
-    # ── AUTO-INIT MYSQL ───────────────────────────────────
-    # Crée les tables dans `easybulk` si elles n'existent pas,
-    # et importe data/*.json si la table `groupe` est vide.
-    print("──── Initialisation MySQL ───────────────────────")
-    from init_db import init_db_and_seed
-    init_db_and_seed(get_db)
+    # ── SYNC MySQL → clean_groupes.json au démarrage ──────────
+    print("──── Sync MySQL → clean_groupes.json ────────────")
+    sync_clean_groupes_from_mysql()
+    # Invalider le cache predict.py → recharge avec les nouveaux groupes
+    predict_cache.clear()
     print("─────────────────────────────────────────────────")
     print()
 

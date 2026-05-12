@@ -1,21 +1,3 @@
-"""
-╔══════════════════════════════════════════════════════════════════╗
-║  01_load_and_explore.py                                          ║
-║                                                                  ║
-║  RÔLE : Charger les données brutes, détecter et corriger         ║
-║         toutes les anomalies avant tout traitement.              ║
-║                                                                  ║
-║  ENTRÉE  → data/groupes.json                                     ║
-║            data/campagnes.json                                   ║
-║            data/budget_history.json                              ║
-║                                                                  ║
-║  SORTIE  → output/clean_groupes.json       (groupes validés)     ║
-║            output/clean_campagnes.json     (campagnes validées)  ║
-║            output/clean_budget_history.json (historique propre)  ║
-║            output/cleaning_report.txt      (rapport nettoyage)   ║
-╚══════════════════════════════════════════════════════════════════╝
-"""
-
 import json, os
 import pandas as pd
 import numpy  as np
