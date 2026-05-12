@@ -1,0 +1,10 @@
+[
+  {
+    "code": "PROMO",
+    "value": "Promotion commerciale"
+  },
+  {
+    "code": "NOTIF",
+    "value": "Notification transactionnelle"
+  }
+]

@@ -1,0 +1,89 @@
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1  —  CHARGEMENT ET SPLIT TEMPOREL                      │
+└────────────────────────────────────────────────────────────────┘
+  ·  Données chargées  :  850 lignes  |  5 groupes  |  10 features
+  ·  Période couverte  :  2022-12-26  →  2026-03-23
+  ·  Taille test calculée : 12 semaines (sur 170 disponibles)
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  SPLIT TEMPOREL                                            │
+  ├────────────────────────────────────────────────────────────┤
+  │  Train  :  2022-12-26  →  2025-12-29   ( 790 lignes)  │
+  │  Test   :  2026-01-05   →  2026-03-23   (  60 lignes)  │
+  └────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2  —  ENTRAÎNEMENT RANDOM FOREST  (3 horizons)          │
+└────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Horizon : 7j  —  'target_conso_7j'                                │
+  ├────────────────────────────────────────────────────────────┤
+  │                         MAE            RMSE      MAPE
+  ├────────────────────────────────────────────────────────────┤
+  │  Train       MAE=   92.13 cr   RMSE=  183.72 cr   MAPE=  21.1%
+  │  Test        MAE=   89.89 cr   RMSE=  149.71 cr   MAPE=  20.4%
+  └────────────────────────────────────────────────────────────┘
+
+  Top 5 features les plus influentes (horizon 7j) :
+    1.  [CONSO   ]  conso_semaine_1                             0.2724  █████████████████████
+    2.  [SAISON  ]  saison_conso_historique_semaine             0.2576  ████████████████████
+    3.  [CONSO   ]  conso_moyenne_4sem                          0.2462  ███████████████████
+    4.  [CAMPAGNE]  campagne_nb_30j                             0.0927  ███████
+    5.  [BUDGET  ]  budget_quota_libre                          0.0697  █████
+  ✓  model_rf_7j.pkl  →  modèle sauvegardé
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Horizon : 14j  —  'target_conso_14j'                              │
+  ├────────────────────────────────────────────────────────────┤
+  │                         MAE            RMSE      MAPE
+  ├────────────────────────────────────────────────────────────┤
+  │  Train       MAE=  176.03 cr   RMSE=  345.83 cr   MAPE=  19.6%
+  │  Test        MAE=  201.13 cr   RMSE=  324.74 cr   MAPE=  20.6%
+  └────────────────────────────────────────────────────────────┘
+
+  Top 5 features les plus influentes (horizon 14j) :
+    1.  [CONSO   ]  conso_semaine_1                             0.2802  ██████████████████████
+    2.  [SAISON  ]  saison_conso_historique_semaine             0.2537  ████████████████████
+    3.  [CONSO   ]  conso_moyenne_4sem                          0.2408  ███████████████████
+    4.  [CAMPAGNE]  campagne_nb_30j                             0.0970  ███████
+    5.  [BUDGET  ]  budget_quota_libre                          0.0699  █████
+  ✓  model_rf_14j.pkl  →  modèle sauvegardé
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Horizon : 30j  —  'target_conso_30j'                              │
+  ├────────────────────────────────────────────────────────────┤
+  │                         MAE            RMSE      MAPE
+  ├────────────────────────────────────────────────────────────┤
+  │  Train       MAE=  335.08 cr   RMSE=  667.13 cr   MAPE=  19.0%
+  │  Test        MAE=  428.69 cr   RMSE=  718.84 cr   MAPE=  20.2%
+  └────────────────────────────────────────────────────────────┘
+
+  Top 5 features les plus influentes (horizon 30j) :
+    1.  [CONSO   ]  conso_semaine_1                             0.2834  ██████████████████████
+    2.  [SAISON  ]  saison_conso_historique_semaine             0.2501  ████████████████████
+    3.  [CONSO   ]  conso_moyenne_4sem                          0.2367  ██████████████████
+    4.  [CAMPAGNE]  campagne_nb_30j                             0.0986  ███████
+    5.  [BUDGET  ]  budget_quota_libre                          0.0798  ██████
+  ✓  model_rf_30j.pkl  →  modèle sauvegardé
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3  —  RÉSUMÉ DES PERFORMANCES                           │
+└────────────────────────────────────────────────────────────────┘
+
+  Les métriques du jeu de TEST mesurent la qualité réelle du modèle
+  sur des données qu'il n'a jamais vues pendant l'entraînement.
+
+  ┌──────────┬──────────────────────┬──────────────────────┐
+  │ Horizon  │   Train              │   Test               │
+  │          │   MAE      MAPE      │   MAE      MAPE      │
+  ├──────────┼──────────────────────┼──────────────────────┤
+  │  7j      │    92.13 cr    21.1%  │    89.89 cr    20.4%  │
+  │  14j     │   176.03 cr    19.6%  │   201.13 cr    20.6%  │
+  │  30j     │   335.08 cr    19.0%  │   428.69 cr    20.2%  │
+  └──────────┴──────────────────────┴──────────────────────┘
+
+  Lecture : MAE = erreur moyenne en crédits
+            MAPE = erreur relative en % (plus c'est bas, mieux c'est)
+  ✓  training_results.json  →  métriques et importances sauvegardées

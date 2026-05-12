@@ -1,0 +1,54 @@
+{
+  "accuracy": 0.9403,
+  "precision_macro": 0.9477,
+  "recall_macro": 0.9461,
+  "f1_macro": 0.9463,
+  "f1_weighted_balanced": 0.9461,
+  "auc_roc_macro": 0.9919,
+  "per_class": {
+    "Available": {
+      "precision": 0.8965,
+      "recall": 0.9516,
+      "f1": 0.9232,
+      "support": 4152
+    },
+    "Suspected": {
+      "precision": 0.9494,
+      "recall": 0.8901,
+      "f1": 0.9188,
+      "support": 4067
+    },
+    "NA": {
+      "precision": 0.9971,
+      "recall": 0.9968,
+      "f1": 0.9969,
+      "support": 2784
+    }
+  },
+  "confusion_matrix": [
+    [
+      3951,
+      193,
+      8
+    ],
+    [
+      447,
+      3620,
+      0
+    ],
+    [
+      9,
+      0,
+      2775
+    ]
+  ],
+  "test_split_size": 0.2,
+  "test_split_seed": 42,
+  "n_test_samples": 11003,
+  "class_distribution": {
+    "0": 4152,
+    "1": 4067,
+    "2": 2784
+  },
+  "evaluated_at": "2026-05-12T13:55:08.721276"
+}

@@ -1,0 +1,96 @@
+
+┌────────────────────────────────────────────────────────────────┐
+│  CHARGEMENT                                                    │
+└────────────────────────────────────────────────────────────────┘
+  ·  N_semaines_test = 12  (sur 170 semaines totales)
+  ·  Test : 2026-01-05 → 2026-03-23 (60 lignes)
+  ✓  Horizon 7j : MAE=87.1 cr  RMSE=144.6 cr  MAPE=18.4%
+  ✓  Horizon 14j : MAE=206.2 cr  RMSE=331.6 cr  MAPE=19.0%
+  ✓  Horizon 30j : MAE=385.0 cr  RMSE=664.3 cr  MAPE=17.4%
+
+┌────────────────────────────────────────────────────────────────┐
+│  PARTIE A  —  ÉVALUATION RÉGRESSION  (MAE / RMSE / MAPE)       │
+└────────────────────────────────────────────────────────────────┘
+  ·  Ces métriques sont les SEULES valides pour un modèle de régression.
+  ·  accuracy/f1/recall sont invalides ici — le modèle prédit un chiffre, pas une classe.
+
+  ┌──────────┬──────────────┬──────────────┬──────────────┐
+  │ Horizon  │   MAE (cr)   │   RMSE (cr)  │     MAPE     │
+  ├──────────┼──────────────┼──────────────┼──────────────┤
+  │  7j      │       87.09  │      144.59  │       18.4%  │
+  │  14j     │      206.20  │      331.60  │       19.0%  │
+  │  30j     │      384.95  │      664.32  │       17.4%  │
+  └──────────┴──────────────┴──────────────┴──────────────┘
+
+  · MAE  = erreur moyenne en crédits (±X cr par prédiction)
+  · RMSE = si RMSE >> MAE → quelques prédictions très mauvaises
+  · MAPE = erreur relative en % (comparaison entre groupes)
+
+┌────────────────────────────────────────────────────────────────┐
+│  PARTIE B  —  ÉVALUATION CLASSIFICATION  (accuracy / precision / recall / f1)│
+└────────────────────────────────────────────────────────────────┘
+  ·  On dérive les labels SAFE/DANGER/CRITIQUE depuis la régression :
+  ·    risque_reel   = classifier( quota_free - conso_reelle_30j )
+  ·    risque_predit = classifier( quota_free - conso_predite_30j )
+  ·  Les métriques de classification sont VALIDES ici car les sorties sont des classes.
+
+  Distribution réelle  : {np.str_('CRITIQUE'): 10, np.str_('DANGER'): 7, np.str_('SAFE'): 43}
+  Distribution prédite : {np.str_('CRITIQUE'): 12, np.str_('DANGER'): 8, np.str_('SAFE'): 40}
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Accuracy   :  85.0%  — % de classes correctement prédites  │
+  │  Precision  :  86.8%  — parmi CRITIQUE prédit, % vrais CRITIQUE│
+  │  Recall     :  85.0%  — parmi CRITIQUE réel, % correctement vus│
+  │  F1-score   :  85.7%  — équilibre precision/recall          │
+  └────────────────────────────────────────────────────────────┘
+
+  Détail par classe :
+                  precision    recall  f1-score   support
+    
+            SAFE       0.97      0.91      0.94        43
+          DANGER       0.38      0.43      0.40         7
+        CRITIQUE       0.75      0.90      0.82        10
+    
+        accuracy                           0.85        60
+       macro avg       0.70      0.75      0.72        60
+    weighted avg       0.87      0.85      0.86        60
+    
+
+  ⚠  MÉTRIQUE CLÉ MÉTIER : recall de la classe CRITIQUE
+     Manquer un CRITIQUE = groupe qui tombe à 0 sans alerte
+     Un recall CRITIQUE faible est plus grave qu'une accuracy faible
+  ✓  plot_classification_risque.png
+
+┌────────────────────────────────────────────────────────────────┐
+│  GRAPHES RÉGRESSION                                            │
+└────────────────────────────────────────────────────────────────┘
+  ✓  plot_prediction_vs_reel.png
+  ✓  plot_importance_features.png
+  ✓  plot_residus.png
+  ✓  plot_mae_train_vs_test.png
+
+┌────────────────────────────────────────────────────────────────┐
+│  RAPPORT FINAL                                                 │
+└────────────────────────────────────────────────────────────────┘
+
+  PARTIE A  —  RÉGRESSION
+  ┌──────────┬────────────┬────────────┬──────────┐
+  │ Horizon  │  MAE (cr)  │  RMSE (cr) │   MAPE   │
+  ├──────────┼────────────┼────────────┼──────────┤
+  │  7j      │      87.09 │     144.59 │    18.4% │
+  │  14j     │     206.20 │     331.60 │    19.0% │
+  │  30j     │     384.95 │     664.32 │    17.4% │
+  └──────────┴────────────┴────────────┴──────────┘
+
+  PARTIE B  —  CLASSIFICATION (SAFE/DANGER/CRITIQUE)
+  Accuracy  : 85.0%
+  Precision : 86.8%
+  Recall    : 85.0%
+  F1-score  : 85.7%
+  ⚠  Recall CRITIQUE = métrique la plus importante
+
+  →  plot_prediction_vs_reel.png
+  →  plot_importance_features.png
+  →  plot_residus.png
+  →  plot_mae_train_vs_test.png
+  →  plot_classification_risque.png

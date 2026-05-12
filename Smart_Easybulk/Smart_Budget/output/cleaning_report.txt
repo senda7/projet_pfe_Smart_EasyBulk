@@ -1,0 +1,55 @@
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1  —  CHARGEMENT DES FICHIERS SOURCES                   │
+└────────────────────────────────────────────────────────────────┘
+  ·  groupes.json                     :    15 lignes
+  ·  campagnes.json                   :   244 lignes
+  ·  budget_history.json              :  6172 lignes
+  ·  campaign_type_permission.json    :    10 lignes (JOIN → groupe_id)
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2  —  NETTOYAGE  :  GROUPES                             │
+└────────────────────────────────────────────────────────────────┘
+  ✓  Invariant  quota_free + quota_locked = quota_total  →  vérifié sur tous les groupes
+  ✓  Groupes valides après nettoyage : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+  ·  Lignes avant : 15  →  après : 15
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3  —  NETTOYAGE  :  HISTORIQUE BUDGET                   │
+└────────────────────────────────────────────────────────────────┘
+  ⚠  ATTENTION │ 21 consommation(s) hors norme (> 579 cr) → plafonnées (conservées mais limitées pour éviter de biaiser le modèle)
+  ✓  Lignes avant : 6172  →  après : 6172
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 4  —  NETTOYAGE  :  CAMPAGNES                           │
+└────────────────────────────────────────────────────────────────┘
+  ✓  Lignes avant : 244  →  après : 244
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 5  —  VÉRIFICATION CROISÉE (cohérence entre les 3 tables)│
+└────────────────────────────────────────────────────────────────┘
+
+  ID    Nom groupe             Statut      Hist. budget  Campagnes
+  ──────────────────────────────────────────────────────────────
+  1     Prisons Nord           actif               1237         87
+  2     Prisons Centre         actif               1232         41
+  3     Prisons Sud            actif               1228         27
+  4     Prisons Est            actif               1235         68
+  5     Test / Dev             actif               1240         21
+  6     sqdcc<                 actif                  0          0
+  7     sqdcc<                 actif                  0          0
+  8     sqdcc<                 actif                  0          0
+  9     sqdcc<                 actif                  0          0
+  10    sqdcc<                 actif                  0          0
+  11    sqdcc<                 actif                  0          0
+  12    sqdcc<                 actif                  0          0
+  13    dcd                    actif                  0          0
+  14    dd                     actif                  0          0
+  15    ggggg                  actif                  0          0
+
+┌────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 6  —  SAUVEGARDE DES FICHIERS NETTOYÉS                  │
+└────────────────────────────────────────────────────────────────┘
+  ✓  clean_groupes.json  →  15 lignes
+  ✓  clean_campagnes.json  →  244 lignes
+  ✓  clean_budget_history.json  →  6172 lignes

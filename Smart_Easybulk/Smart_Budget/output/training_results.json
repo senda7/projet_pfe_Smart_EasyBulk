@@ -1,0 +1,74 @@
+{
+  "7j": {
+    "metriques_train": {
+      "mae": 92.1305,
+      "rmse": 183.7222,
+      "mape": 21.07
+    },
+    "metriques_test": {
+      "mae": 89.8855,
+      "rmse": 149.7127,
+      "mape": 20.44
+    },
+    "top10_features": {
+      "conso_semaine_1": 0.2724465273382286,
+      "saison_conso_historique_semaine": 0.25761897969537867,
+      "conso_moyenne_4sem": 0.2462471200536045,
+      "campagne_nb_30j": 0.09266240274366791,
+      "budget_quota_libre": 0.06972197286524716,
+      "saison_multiplicateur": 0.020923313197437645,
+      "budget_ratio_libre": 0.017552287301020635,
+      "jours_avant_zero_rythme_event": 0.01619424991865183,
+      "tendance_ratio_accel": 0.006586873552400022,
+      "evenement_prochain_jours": 4.6273334362928806e-05
+    }
+  },
+  "14j": {
+    "metriques_train": {
+      "mae": 176.032,
+      "rmse": 345.8278,
+      "mape": 19.64
+    },
+    "metriques_test": {
+      "mae": 201.1256,
+      "rmse": 324.736,
+      "mape": 20.59
+    },
+    "top10_features": {
+      "conso_semaine_1": 0.2802292029113651,
+      "saison_conso_historique_semaine": 0.25365339643071355,
+      "conso_moyenne_4sem": 0.24076722724713603,
+      "campagne_nb_30j": 0.09700496982976997,
+      "budget_quota_libre": 0.06989412993266317,
+      "saison_multiplicateur": 0.018046902379692302,
+      "budget_ratio_libre": 0.01718974188301515,
+      "jours_avant_zero_rythme_event": 0.01690514839141182,
+      "tendance_ratio_accel": 0.006272108713082055,
+      "evenement_prochain_jours": 3.7172281150723575e-05
+    }
+  },
+  "30j": {
+    "metriques_train": {
+      "mae": 335.0765,
+      "rmse": 667.1341,
+      "mape": 18.97
+    },
+    "metriques_test": {
+      "mae": 428.6872,
+      "rmse": 718.8442,
+      "mape": 20.18
+    },
+    "top10_features": {
+      "conso_semaine_1": 0.28336665475215606,
+      "saison_conso_historique_semaine": 0.2501077545474619,
+      "conso_moyenne_4sem": 0.23670599014497168,
+      "campagne_nb_30j": 0.09856160722869174,
+      "budget_quota_libre": 0.07984168027827601,
+      "budget_ratio_libre": 0.017073462606863984,
+      "jours_avant_zero_rythme_event": 0.016326379811110882,
+      "saison_multiplicateur": 0.011263918015930026,
+      "tendance_ratio_accel": 0.006670682276188744,
+      "evenement_prochain_jours": 8.187033834893092e-05
+    }
+  }
+}

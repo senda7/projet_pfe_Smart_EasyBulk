@@ -1,0 +1,157 @@
+[
+  {
+    "id": 1,
+    "name": "Prisons Nord",
+    "description": "safe_confortable",
+    "quota": 10000,
+    "quotaLoked": 255,
+    "quotaFree": 9745,
+    "status_id": 1,
+    "admin_id": 2,
+    "organization_id": 1,
+    "createdAt": "2023-01-01T08:00:00",
+    "updatedAt": "2026-04-20T18:00:00"
+  },
+  {
+    "id": 2,
+    "name": "Prisons Centre",
+    "description": "danger_imminent",
+    "quota": 1800,
+    "quotaLoked": 210,
+    "quotaFree": 1590,
+    "status_id": 1,
+    "admin_id": 3,
+    "organization_id": 1,
+    "createdAt": "2023-01-01T08:00:00",
+    "updatedAt": "2026-04-20T18:00:00"
+  },
+  {
+    "id": 3,
+    "name": "Prisons Sud",
+    "description": "critique_urgent",
+    "quota": 600,
+    "quotaLoked": 80,
+    "quotaFree": 520,
+    "status_id": 1,
+    "admin_id": 4,
+    "organization_id": 1,
+    "createdAt": "2023-01-01T08:00:00",
+    "updatedAt": "2026-04-20T18:00:00"
+  },
+  {
+    "id": 4,
+    "name": "Prisons Est",
+    "description": "safe_actif",
+    "quota": 6000,
+    "quotaLoked": 360,
+    "quotaFree": 5640,
+    "status_id": 1,
+    "admin_id": 5,
+    "organization_id": 1,
+    "createdAt": "2023-01-01T08:00:00",
+    "updatedAt": "2026-04-20T18:00:00"
+  },
+  {
+    "id": 5,
+    "name": "Test / Dev",
+    "description": "test_leger",
+    "quota": 500,
+    "quotaLoked": 0,
+    "quotaFree": 500,
+    "status_id": 1,
+    "admin_id": 6,
+    "organization_id": 1,
+    "createdAt": "2023-01-01T08:00:00",
+    "updatedAt": "2026-04-20T18:00:00"
+  },
+  {
+    "id": 6,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 7,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 8,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 9,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 10,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 11,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 12,
+    "name": "sqdcc<",
+    "quota": 2014,
+    "quotaLoked": 0,
+    "quotaFree": 2014,
+    "status_id": 1,
+    "description": "ssQSWQzxs"
+  },
+  {
+    "id": 13,
+    "name": "dcd",
+    "quota": 2222,
+    "quotaLoked": 0,
+    "quotaFree": 2222,
+    "status_id": 1,
+    "description": "xxxxx"
+  },
+  {
+    "id": 14,
+    "name": "dd",
+    "quota": 2356,
+    "quotaLoked": 0,
+    "quotaFree": 2356,
+    "status_id": 1,
+    "description": "hyk"
+  },
+  {
+    "id": 15,
+    "name": "ggggg",
+    "quota": 4512,
+    "quotaLoked": 0,
+    "quotaFree": 4512,
+    "status_id": 1,
+    "description": "xssxxxx"
+  }
+]
