@@ -717,7 +717,7 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
         <span id="selCount" style="font-size:.8rem;color:var(--muted)">0 sélectionné(s)</span>
         <div style="display:flex;gap:.5rem">
           <button class="btn btn-secondary" onclick="clearSelection()">🗑 Effacer</button>
-          <button class="btn btn-primary" id="btnFiltrage" onclick="runFiltrage()" disabled>🔍 Filtrage Intelligent</button>
+          <button class="btn btn-primary" id="btnFiltrage" onclick="runFiltrage()">🔍 Filtrage Intelligent</button>
         </div>
       </div>
     </div>
@@ -837,6 +837,7 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
         <div style="font-size:.73rem;color:var(--muted);margin-top:.1rem">Gérez vos contacts, importez des fichiers CSV et organisez par tags.</div>
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" id="btnCaRefresh" onclick="caRefresh()">↺ Rafraîchir</button>
         <button class="btn btn-secondary btn-sm" onclick="openImportWizard()">📥 Importer un fichier</button>
         <button class="btn btn-primary btn-sm" onclick="openAddContact()">➕ Ajouter un contact</button>
       </div>
@@ -878,6 +879,17 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
             <option value="MA">🇲🇦 Maroc</option>
             <option value="DZ">🇩🇿 Algérie</option>
             <option value="FR">🇫🇷 France</option>
+            <option value="LY">🇱🇾 Libye</option>
+            <option value="EG">🇪🇬 Égypte</option>
+            <option value="SA">🇸🇦 Arabie Saoudite</option>
+            <option value="AE">🇦🇪 Émirats Arabes</option>
+            <option value="GB">🇬🇧 Royaume-Uni</option>
+            <option value="DE">🇩🇪 Allemagne</option>
+            <option value="ES">🇪🇸 Espagne</option>
+            <option value="IT">🇮🇹 Italie</option>
+            <option value="SN">🇸🇳 Sénégal</option>
+            <option value="CI">🇨🇮 Côte d'Ivoire</option>
+            <option value="CM">🇨🇲 Cameroun</option>
           </select>
         </div>
         <div class="ca-filter-group">
@@ -899,6 +911,7 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
       <div class="ca-bulk" id="caBulkBar" style="display:none">
         <span class="ca-bulk-info" id="caBulkInfo">0 contact(s) sélectionné(s)</span>
         <div class="ca-bulk-actions">
+          <button class="btn btn-sm" id="caBulkSelectAll" style="display:none;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-50)" onclick="caSelectAllFiltered()">☑ Tout sélectionner</button>
           <button class="btn btn-sm" style="background:var(--purple-light);color:var(--purple);border:1px solid #e9d5ff" onclick="bulkTag()">🏷 Taguer</button>
           <button class="btn btn-sm" style="background:var(--orange-light);color:var(--orange);border:1px solid var(--orange-50)" onclick="bulkRemoveTag()">🗑 Supprimer tags</button>
           <button class="btn btn-danger btn-sm" onclick="bulkDelete()">🗑 Supprimer contacts</button>
@@ -938,34 +951,46 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
 
 <!-- ══ MODAL: Ajouter / Modifier Contact ══ -->
 <div class="ca-modal-overlay" id="caContactModal">
-  <div class="ca-modal">
+  <div class="ca-modal" style="width:min(560px,95vw);max-height:92vh;overflow-y:auto">
     <div class="ca-modal-header">
       <span id="caContactModalTitle">Ajouter un contact</span>
       <button class="ca-close" onclick="closeCaModal('caContactModal')">×</button>
     </div>
     <div class="ca-modal-body">
       <div class="ca-form-grid">
-        <div class="ca-field">
+        <div class="ca-field" style="grid-column:1/-1">
           <label>Téléphone <span class="req">*</span></label>
           <div class="ca-phone-wrap">
-            <select class="ca-flag-sel" id="caContactPays">
+            <select class="ca-flag-sel" id="caContactPays" onchange="caValidateTel()">
               <option value="TN">🇹🇳 +216</option>
               <option value="MA">🇲🇦 +212</option>
               <option value="DZ">🇩🇿 +213</option>
               <option value="FR">🇫🇷 +33</option>
+              <option value="LY">🇱🇾 +218</option>
+              <option value="EG">🇪🇬 +20</option>
+              <option value="SA">🇸🇦 +966</option>
+              <option value="AE">🇦🇪 +971</option>
+              <option value="GB">🇬🇧 +44</option>
+              <option value="DE">🇩🇪 +49</option>
+              <option value="ES">🇪🇸 +34</option>
+              <option value="IT">🇮🇹 +39</option>
+              <option value="SN">🇸🇳 +221</option>
+              <option value="CI">🇨🇮 +225</option>
+              <option value="CM">🇨🇲 +237</option>
             </select>
-            <input type="text" id="caContactTel" placeholder="55 666 999" style="flex:1;border:1.5px solid var(--border);border-radius:var(--radius-xs);padding:.42rem .7rem;font-size:.84rem;font-family:inherit;outline:none">
+            <input type="text" id="caContactTel" placeholder="" oninput="caValidateTel()" style="flex:1;border:1.5px solid var(--border);border-radius:var(--radius-xs);padding:.42rem .7rem;font-size:.84rem;font-family:inherit;outline:none">
           </div>
+          <div id="caTelError" style="color:var(--red);font-size:.75rem;margin-top:.25rem;display:none"></div>
+          <div id="caTelHint" style="color:var(--muted);font-size:.73rem;margin-top:.2rem"></div>
         </div>
         <div class="ca-field"><label>Nom</label><input type="text" id="caContactNom" placeholder="Nom..."></div>
         <div class="ca-field"><label>Prénom</label><input type="text" id="caContactPrenom" placeholder="Prénom..."></div>
-        <div class="ca-field"><label>Email</label><input type="text" id="caContactEmail" placeholder="email@..."></div>
-        <div class="ca-field">
+        <div class="ca-field" style="grid-column:1/-1"><label>Email</label><input type="text" id="caContactEmail" placeholder="email@..."></div>
+        <div class="ca-field" style="grid-column:1/-1">
           <label>Tags</label>
-          <div class="ca-tags-field" id="caContactTagsWrap" onclick="document.getElementById('caContactTagInput').focus()">
-            <input type="text" id="caContactTagInput" class="ca-tag-input-inner" placeholder="Ajouter un tag..." oninput="caSuggestTags(this.value)" onfocus="caSuggestTags('')">
+          <div class="ca-tags-field" id="caContactTagsWrap" onclick="document.getElementById('caContactTagInput').focus()" style="min-height:42px;max-height:120px;overflow-y:auto">
+            <input type="text" id="caContactTagInput" class="ca-tag-input-inner" placeholder="Ajouter un tag..." oninput="caSuggestTags(this.value)" onfocus="caSuggestTags(this.value||'')" onblur="setTimeout(closeCaTagSuggest,150)">
           </div>
-          <div id="caTagSuggest" style="position:relative;z-index:60"></div>
         </div>
       </div>
     </div>
@@ -1020,12 +1045,12 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
 
 <!-- ══ MODAL: Import Wizard ══ -->
 <div class="ca-modal-overlay" id="caImportModal">
-  <div class="ca-modal" style="width:580px">
-    <div class="ca-modal-header">
+  <div class="ca-modal" style="width:min(640px,95vw);max-height:92vh;display:flex;flex-direction:column">
+    <div class="ca-modal-header" style="flex-shrink:0">
       <span>📥 Importer un carnet d'adresses</span>
       <button class="ca-close" onclick="closeCaModal('caImportModal')">×</button>
     </div>
-    <div class="ca-modal-body">
+    <div class="ca-modal-body" style="flex:1;overflow-y:auto;overflow-x:hidden">
       <!-- Steps -->
       <div class="wiz-steps">
         <div class="wiz-step active" id="wStep1"><div class="wiz-step-num">1</div><div class="wiz-step-label">Ajouter un Fichier</div></div>
@@ -1047,17 +1072,32 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
       <div class="wiz-pane" id="wPane2">
         <div style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem">Associez chaque colonne CSV à un champ contact :</div>
         <div id="colMapGrid"></div>
+
+        <!-- Détection pays automatique -->
+        <div id="countryDetectBanner" style="display:none;margin-top:.85rem;background:var(--blue-light);border:1px solid var(--blue-50);border-radius:var(--radius-xs);padding:.55rem .8rem;font-size:.8rem;color:var(--blue-dark)"></div>
+
         <div style="margin-top:1rem">
           <label style="font-size:.78rem;font-weight:600;margin-bottom:.3rem;display:block">Aperçu des données</label>
           <div style="overflow-x:auto;border-radius:var(--radius-xs);border:1px solid var(--border)">
             <table style="font-size:.75rem;border-collapse:collapse;width:100%" id="csvPreviewTable"></table>
           </div>
         </div>
-        <div style="margin-top:.85rem">
-          <label style="font-size:.78rem;font-weight:600;margin-bottom:.3rem;display:block">Tags à appliquer</label>
-          <div class="ca-tags-field" id="importTagsWrap" onclick="document.getElementById('importTagInput').focus()" style="min-height:34px">
-            <input type="text" id="importTagInput" class="ca-tag-input-inner" placeholder="Tag..." oninput="caSuggestImportTags(this.value)">
+        <div style="margin-top:.85rem;padding-bottom:.5rem">
+          <label style="font-size:.78rem;font-weight:600;margin-bottom:.5rem;display:block">Tags à appliquer</label>
+          <!-- Chips des tags sélectionnés -->
+          <div id="importTagChipsRow" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.45rem;min-height:0"></div>
+          <!-- Input -->
+          <div style="position:relative" id="importTagFieldWrap">
+            <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:var(--radius-xs);padding:.32rem .65rem;gap:.4rem;background:white;transition:border .15s" id="importTagInputBox" onclick="document.getElementById('importTagInput').focus()">
+              <span style="color:var(--muted);font-size:.82rem">🏷️</span>
+              <input type="text" id="importTagInput" class="ca-tag-input-inner" placeholder="Rechercher ou créer un tag..." style="flex:1;min-width:80px"
+                oninput="caSuggestImportTags(this.value)"
+                onfocus="importTagInputBox.style.borderColor='var(--blue)';caSuggestImportTags(this.value||'')"
+                onblur="importTagInputBox.style.borderColor='';setTimeout(closeImportTagDd,150)">
+            </div>
           </div>
+          <!-- Dropdown moved to body via JS -->
+          <div style="font-size:.71rem;color:var(--muted);margin-top:.35rem">Cliquez sur un tag existant ou tapez pour en créer un nouveau. Appuyez sur <strong>Entrée</strong> pour valider.</div>
         </div>
       </div>
       <!-- Pane 3: Confirmation summary -->
@@ -1127,6 +1167,21 @@ label{font-weight:600;font-size:.82rem;display:block;margin-bottom:.32rem;color:
     </div>
   </div>
 </div>
+
+<!-- ══ MODAL: Alerte validation campagne ══ -->
+<div class="modal-overlay" id="alertModalOverlay" style="z-index:600">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <div class="modal-title" id="alertModalTitle" style="font-size:1.1rem;margin-bottom:.75rem"></div>
+    <div class="modal-body" id="alertModalBody" style="font-size:.88rem;line-height:1.7;margin-bottom:1.25rem"></div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-primary" onclick="closeAlertModal()" style="min-width:110px">OK, compris</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAG DROPDOWNS — attachés au body pour éviter overflow/transform des modals ══ -->
+<div id="caTagSuggest"  style="display:none;position:fixed;background:white;border:1px solid #e4e8f0;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:999999;max-height:210px;overflow-y:auto;min-width:220px"></div>
+<div id="importTagDd"   style="display:none;position:fixed;background:white;border:1px solid #e4e8f0;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:999999;max-height:210px;overflow-y:auto;min-width:220px"></div>
 
 <div class="toast" id="toast"></div>
 
@@ -1340,35 +1395,49 @@ function clearSelection(){
   // Reset header checkbox
   const chkAll = document.getElementById('chkAll');
   if(chkAll) chkAll.checked = false;
+  // Reset groupe
+  const selGroupe = document.getElementById('selGroupe');
+  if(selGroupe) selGroupe.selectedIndex = 0;
+  // Hide results
+  document.getElementById('resultsSection').style.display='none';
+  allResults=[];
+  naExcluded=false;
+  suspectExcluded=false;
   updateStats();
 }
 function updateStats(){
-  const sel=selectedMsisdns.size,total=filteredContacts.length;
+  const sel=selectedMsisdns.size, total=filteredContacts.length;
   document.getElementById('selCount').textContent=`${sel} sélectionné(s) sur ${total}`;
   document.getElementById('totalContacts').textContent=total;
   document.getElementById('totalMessages').textContent=total;
-  // Budget : depuis le groupe sélectionné (quota libre réel depuis API Budget ML)
-  const grpSel=document.getElementById('selGroupe');
-  const grpOpt=grpSel?grpSel.options[grpSel.selectedIndex]:null;
-  const budget=grpOpt&&grpOpt.dataset.budget?parseInt(grpOpt.dataset.budget):null;
-  const conso30=grpOpt&&grpOpt.dataset.conso30j?parseInt(grpOpt.dataset.conso30j):null;
-  if(budget!=null){
-    const ok=total<=budget;
-    const label=budget.toLocaleString('fr-FR')+' cr libres'+(conso30?'  ·  prév.30j: '+conso30.toLocaleString('fr-FR'):'');
-    document.getElementById('budgetVal').textContent=label;
-    document.getElementById('budgetVal').className='bvalue '+(ok?'v-blue':'v-red');
+  // Budget : afficher uniquement le nombre de SMS (contacts cochés ou total filtrés)
+  const displayCount = sel > 0 ? sel : total;
+  if(displayCount>0){
+    document.getElementById('budgetVal').textContent=displayCount+' SMS';
+    document.getElementById('budgetVal').className='bvalue v-blue';
   } else {
-    document.getElementById('budgetVal').textContent=total>0?total+' SMS':'—';
+    document.getElementById('budgetVal').textContent='—';
     document.getElementById('budgetVal').className='bvalue v-gray';
   }
-  document.getElementById('btnFiltrage').disabled=total===0;
+  // Le bouton Filtrage Intelligent est toujours actif — validation se fait au clic
+  document.getElementById('btnFiltrage').disabled = false;
 }
 
 function updateGroupeBudget(){ updateStats(); }
 
 async function runFiltrage(){
-  const msisdns=selectedMsisdns.size>0?[...selectedMsisdns]:filteredContacts.map(c=>c.telephone);
-  if(!msisdns.length){showToast('⚠️ Aucun contact sélectionné');return;}
+  // Validation 1 : groupe sélectionné
+  const grpSel=document.getElementById('selGroupe');
+  if(!grpSel||!grpSel.value){
+    showAlertModal('⚠️ Groupe requis', 'Vous devez choisir un <strong>groupe</strong> avant de lancer le filtrage intelligent.');
+    return;
+  }
+  // Validation 2 : au moins un contact coché dans les cases à cocher
+  if(selectedMsisdns.size===0){
+    showAlertModal('⚠️ Contacts requis', 'Vous devez <strong>sélectionner au moins un contact</strong> en cochant les cases à cocher dans la liste des contacts.');
+    return;
+  }
+  const msisdns=[...selectedMsisdns];
   const btn=document.getElementById('btnFiltrage');
   btn.disabled=true;btn.innerHTML='<span class="spinner-inline"></span> Analyse...';
 
@@ -1554,6 +1623,9 @@ function resetFiltrage(){
   // Reset header checkbox
   const chkAll=document.getElementById('chkAll');
   if(chkAll) chkAll.checked=false;
+  // Reset groupe
+  const selGroupe=document.getElementById('selGroupe');
+  if(selGroupe) selGroupe.selectedIndex=0;
   updateStats();
   // Masquer la section résultats
   document.getElementById('resultsSection').style.display='none';
@@ -1571,8 +1643,22 @@ function closeModal(){
 document.getElementById('modalOverlay').addEventListener('click',function(e){
   if(e.target===this)closeModal();
 });
+document.getElementById('alertModalOverlay').addEventListener('click',function(e){
+  if(e.target===this)closeAlertModal();
+});
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+
+/* ── Alert modal pour les validations de campagne ── */
+function showAlertModal(title, bodyHtml){
+  const overlay=document.getElementById('alertModalOverlay');
+  document.getElementById('alertModalTitle').textContent=title;
+  document.getElementById('alertModalBody').innerHTML=bodyHtml;
+  overlay.classList.add('open');
+}
+function closeAlertModal(){
+  document.getElementById('alertModalOverlay').classList.remove('open');
+}
 
 /* ════════════════════════════════════════
    TAB NAVIGATION
@@ -1601,8 +1687,8 @@ function switchTab(tab){
    CARNET D'ADRESSES — DATA
 ════════════════════════════════════════ */
 const TAG_COLORS=['','tp-blue','tp-green','tp-orange','tp-red',''];
-const COUNTRY_FLAGS={TN:'🇹🇳',MA:'🇲🇦',DZ:'🇩🇿',FR:'🇫🇷','':''};
-const COUNTRY_CODES={TN:'+216',MA:'+212',DZ:'+213',FR:'+33'};
+const COUNTRY_FLAGS={TN:'🇹🇳',MA:'🇲🇦',DZ:'🇩🇿',FR:'🇫🇷',LY:'🇱🇾',EG:'🇪🇬',SA:'🇸🇦',AE:'🇦🇪',GB:'🇬🇧',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',SN:'🇸🇳',CI:'🇨🇮',CM:'🇨🇲','':''};
+const COUNTRY_CODES={TN:'+216',MA:'+212',DZ:'+213',FR:'+33',LY:'+218',EG:'+20',SA:'+966',AE:'+971',GB:'+44',DE:'+49',ES:'+34',IT:'+39',SN:'+221',CI:'+225',CM:'+237'};
 
 let caContacts = []; // populated from allContacts + local storage
 let caFiltered = [];
@@ -1646,6 +1732,103 @@ async function reloadCaContacts(){
 // Garde pour compatibilité (plus utilisé pour sauvegarder)
 function caLoadContacts(){ /* données viennent de l'API désormais */ }
 function caSaveContacts(){ /* sauvegarde gérée par l'API désormais */ }
+
+/* ══ Refresh button for Carnet d'adresses ══ */
+async function caRefresh(){
+  const btn = document.getElementById('btnCaRefresh');
+  if(btn){ btn.disabled=true; btn.textContent='↺ Chargement...'; }
+  await reloadCaContacts();
+  if(btn){ btn.disabled=false; btn.textContent='↺ Rafraîchir'; }
+  showToast('✅ Carnet d\'adresses actualisé');
+}
+
+/* ══ Validation téléphone selon pays ══ */
+const PHONE_RULES = {
+  TN: { digits: 8,  prefix: ['2','5','9','4','3'],  hint: '8 chiffres (ex: 55123456)' },
+  MA: { digits: 9,  prefix: ['6','7'],               hint: '9 chiffres (ex: 612345678)' },
+  DZ: { digits: 9,  prefix: ['5','6','7'],            hint: '9 chiffres (ex: 551234567)' },
+  FR: { digits: 9,  prefix: ['6','7'],                hint: '9 chiffres sans le 0 (ex: 612345678)' },
+  LY: { digits: 9,  prefix: ['9'],                    hint: '9 chiffres (ex: 912345678)' },
+  EG: { digits: 10, prefix: ['1'],                    hint: '10 chiffres (ex: 1012345678)' },
+  SA: { digits: 9,  prefix: ['5'],                    hint: '9 chiffres (ex: 512345678)' },
+  AE: { digits: 9,  prefix: ['5'],                    hint: '9 chiffres (ex: 501234567)' },
+  GB: { digits: 10, prefix: ['7'],                    hint: '10 chiffres sans le 0 (ex: 7123456789)' },
+  DE: { digits: 10, prefix: ['1','2','3','4','5','6','7','8','9'], hint: '10 chiffres (ex: 1512345678)' },
+  ES: { digits: 9,  prefix: ['6','7'],                hint: '9 chiffres (ex: 612345678)' },
+  IT: { digits: 10, prefix: ['3'],                    hint: '10 chiffres (ex: 3123456789)' },
+  SN: { digits: 9,  prefix: ['7','3'],                hint: '9 chiffres (ex: 771234567)' },
+  CI: { digits: 10, prefix: ['0','4','5','6','7','8'], hint: '10 chiffres (ex: 0712345678)' },
+  CM: { digits: 9,  prefix: ['6'],                    hint: '9 chiffres (ex: 612345678)' },
+};
+
+/* ══ Détection automatique du pays depuis l'indicatif ══ */
+const DETECT_RULES = [
+  // Ordre du plus long au plus court pour éviter les faux positifs
+  { prefix: '+966', country: 'SA' },
+  { prefix: '+971', country: 'AE' },
+  { prefix: '+221', country: 'SN' },
+  { prefix: '+225', country: 'CI' },
+  { prefix: '+237', country: 'CM' },
+  { prefix: '+218', country: 'LY' },
+  { prefix: '+216', country: 'TN' },
+  { prefix: '+212', country: 'MA' },
+  { prefix: '+213', country: 'DZ' },
+  { prefix: '+33',  country: 'FR' },
+  { prefix: '+49',  country: 'DE' },
+  { prefix: '+44',  country: 'GB' },
+  { prefix: '+39',  country: 'IT' },
+  { prefix: '+34',  country: 'ES' },
+  { prefix: '+20',  country: 'EG' },
+];
+
+function caDetectCountry(raw){
+  // Accepte +XXXX... ou 00XXXX...
+  let normalized = raw.replace(/[\s\-\.]/g,'');
+  if(normalized.startsWith('00')) normalized = '+' + normalized.slice(2);
+  if(!normalized.startsWith('+')) return null;
+  for(const r of DETECT_RULES){
+    if(normalized.startsWith(r.prefix)){
+      return { country: r.country, local: normalized.slice(r.prefix.length) };
+    }
+  }
+  return null;
+}
+
+function caValidateTel(){
+  const paysEl = document.getElementById('caContactPays');
+  const telInp  = document.getElementById('caContactTel');
+  const rawVal  = telInp.value || '';
+  const hintEl  = document.getElementById('caTelHint');
+  const errEl   = document.getElementById('caTelError');
+
+  // ── Détection automatique du pays si indicatif international ──
+  const detected = caDetectCountry(rawVal);
+  if(detected){
+    paysEl.value = detected.country;
+    // Remplace la valeur par le numéro local (sans indicatif) pour la validation
+    telInp.value = detected.local.replace(/[\s\-\.]/g,'');
+    // Petit badge visuel
+    if(hintEl) hintEl.innerHTML = `<span style="color:var(--green);font-weight:600">✔ Pays détecté automatiquement : ${COUNTRY_FLAGS[detected.country]||''} ${detected.country}</span>`;
+    setTimeout(()=>caValidateTel(), 50);
+    return;
+  }
+
+  const pays = paysEl.value;
+  const tel  = rawVal.replace(/[\s\-\.]/g,'');
+  const rule = PHONE_RULES[pays]||{digits:8, prefix:[], hint:'format valide'};
+  if(hintEl) hintEl.textContent = 'Format attendu : ' + rule.hint;
+  if(!tel){ errEl.style.display='none'; telInp.style.borderColor=''; return; }
+  const ok = tel.length === rule.digits && (rule.prefix.length===0 || rule.prefix.some(p=>tel.startsWith(p)));
+  if(ok){
+    errEl.style.display='none';
+    telInp.style.borderColor='var(--green)';
+  } else {
+    errEl.style.display='block';
+    errEl.textContent = `Numéro invalide pour ${pays} : ${rule.hint}`;
+    telInp.style.borderColor='var(--red)';
+  }
+}
+
 
 function caGetAllTags(){
   const s = new Set();
@@ -1778,7 +1961,16 @@ function renderCaTable(){
 
   // bulk bar
   const bulkBar=document.getElementById('caBulkBar');
-  if(caSelected.size>0){bulkBar.style.display='flex';document.getElementById('caBulkInfo').textContent=`${caSelected.size} contact(s) sélectionné(s) · Agit sur le total ${caFiltered.length}`;}
+  if(caSelected.size>0){
+    bulkBar.style.display='flex';
+    const allFilteredSelected = caFiltered.every(c=>caSelected.has(c.telephone));
+    const selectAllBtn = document.getElementById('caBulkSelectAll');
+    if(selectAllBtn){
+      if(allFilteredSelected){ selectAllBtn.style.display='none'; }
+      else { selectAllBtn.style.display='inline-flex'; selectAllBtn.textContent=`☑ Tout sélectionner (${caFiltered.length})`; }
+    }
+    document.getElementById('caBulkInfo').textContent=`${caSelected.size} contact(s) sélectionné(s) · Agit sur le total ${caFiltered.length}`;
+  }
   else bulkBar.style.display='none';
 }
 
@@ -1786,6 +1978,7 @@ function caGoPage(p){const pages=Math.ceil(caFiltered.length/CA_PER_PAGE)||1;if(
 function caToggleOne(tel,chk){if(chk.checked)caSelected.add(tel);else caSelected.delete(tel);renderCaTable();}
 function caToggleAll(chk){const pages=Math.ceil(caFiltered.length/CA_PER_PAGE)||1;const start=(caPage-1)*CA_PER_PAGE;const slice=caFiltered.slice(start,start+CA_PER_PAGE);if(chk.checked)slice.forEach(c=>caSelected.add(c.telephone));else slice.forEach(c=>caSelected.delete(c.telephone));renderCaTable();}
 function caResetSelection(){caSelected.clear();renderCaTable();showToast('↺ Sélection réinitialisée');}
+function caSelectAllFiltered(){caFiltered.forEach(c=>caSelected.add(c.telephone));renderCaTable();showToast(`☑ ${caFiltered.length} contacts sélectionnés`);}
 function toggleCaFilters(btn){const p=document.getElementById('caFiltersPanel');p.classList.toggle('open');btn.textContent=p.classList.contains('open')?'✕ Fermer':'⚙️ Filtrer';}
 function resetCaFilters(){['caFTel','caFNom','caFPrenom','caFEmail','caFDate','caSearch'].forEach(id=>document.getElementById(id).value='');document.getElementById('caFPays').value='';document.getElementById('caFTag').value='';caFilter();}
 
@@ -1799,6 +1992,9 @@ function openAddContact(){
   document.getElementById('caContactModalTitle').textContent='Ajouter un contact';
   ['caContactTel','caContactNom','caContactPrenom','caContactEmail'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('caContactPays').value='TN';
+  document.getElementById('caTelError').style.display='none';
+  document.getElementById('caTelHint').textContent='Format attendu : 8 chiffres (ex: 55123456)';
+  document.getElementById('caContactTel').style.borderColor='';
   renderContactModalTags();
   openCaModal('caContactModal');
 }
@@ -1808,11 +2004,17 @@ function openEditContact(idx){
   const c=caContacts[idx];
   caContactTags=[...(c.tags||[])];
   document.getElementById('caContactModalTitle').textContent='Modifier un contact';
-  document.getElementById('caContactTel').value=c.telephone||'';
+  // -- Strip indicatif si present dans le numero stocke --
+  let rawTel = c.telephone||'';
+  let paysVal = c.pays||'TN';
+  const stripped = stripIndicatif(rawTel);
+  if(stripped){ rawTel = stripped.localTel; paysVal = stripped.pays; }
+  document.getElementById('caContactTel').value=rawTel;
   document.getElementById('caContactNom').value=c.nom||'';
   document.getElementById('caContactPrenom').value=c.prenom||'';
   document.getElementById('caContactEmail').value=c.email||'';
-  document.getElementById('caContactPays').value=c.pays||'TN';
+  document.getElementById('caContactPays').value=paysVal;
+  caValidateTel();
   renderContactModalTags();
   openCaModal('caContactModal');
 }
@@ -1837,8 +2039,13 @@ function openDeleteContact(idx){
 }
 
 async function saveCaContact(){
-  const tel=document.getElementById('caContactTel').value.trim();
+  const pays=document.getElementById('caContactPays').value;
+  const tel=document.getElementById('caContactTel').value.trim().replace(/\s/g,'');
   if(!tel){showToast('⚠️ Le numéro de téléphone est obligatoire');return;}
+  // Validate phone
+  const rule=PHONE_RULES[pays]||{digits:8,prefix:[]};
+  const ok=tel.length===rule.digits&&(rule.prefix.length===0||rule.prefix.some(p=>tel.startsWith(p)));
+  if(!ok){showToast('⚠️ Numéro de téléphone invalide pour le pays sélectionné ('+rule.hint+')');return;}
   const contact={
     telephone: tel,
     nom: document.getElementById('caContactNom').value.trim(),
@@ -1907,34 +2114,52 @@ function renderContactModalTags(){
   });
 }
 function removeContactModalTag(tag){caContactTags=caContactTags.filter(t=>t!==tag);renderContactModalTags();}
-function addContactModalTag(tag){if(!tag||caContactTags.includes(tag))return;caContactTags.push(tag);document.getElementById('caContactTagInput').value='';renderContactModalTags();document.getElementById('caTagSuggest').innerHTML='';}
+function addContactModalTag(tag){if(!tag||caContactTags.includes(tag))return;caContactTags.push(tag);document.getElementById('caContactTagInput').value='';renderContactModalTags();closeCaTagSuggest();setTimeout(()=>caSuggestTags(''),50);}
 
 function caSuggestTags(val){
-  const all=caGetAllTags().filter(t=>t.toLowerCase().includes(val.toLowerCase())&&!caContactTags.includes(t));
-  const el=document.getElementById('caTagSuggest');
-  const items=[...all.slice(0,8)];
-  // Proposer création si le tag n'existe pas encore
-  if(val.trim()&&!caGetAllTags().includes(val.trim())&&!caContactTags.includes(val.trim())){
-    items.unshift('__new__:'+val.trim());
+  const dd=document.getElementById('caTagSuggest');
+  if(!dd) return;
+  // Position fixed sous l'input — même pattern que caSuggestImportTags
+  const inputEl=document.getElementById('caContactTagInput');
+  if(inputEl){
+    const r=inputEl.getBoundingClientRect();
+    dd.style.left=r.left+'px';
+    dd.style.width=Math.max(r.width,200)+'px';
+    dd.style.top=(r.bottom+3)+'px';
   }
-  if(!items.length){el.innerHTML='';return;}
-  el.innerHTML=`<div style="position:absolute;width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-xs);box-shadow:var(--shadow-md);z-index:70;max-height:180px;overflow-y:auto">`+
-    items.map(t=>{
-      if(t.startsWith('__new__:')){
-        const v=t.slice(8);
-        return `<div style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;color:var(--blue);font-weight:600;border-bottom:1px solid var(--border)" onmousedown="event.preventDefault();addContactModalTag('${v.replace(/'/g,"\\'")}')" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">➕ Créer tag "<strong>${v}</strong>"</div>`;
-      }
-      return `<div style="padding:.4rem .75rem;cursor:pointer;font-size:.82rem;display:flex;justify-content:space-between;align-items:center" onmousedown="event.preventDefault();addContactModalTag('${t.replace(/'/g,"\\'")}')" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">${t}</div>`;
-    }).join('')
-    +`</div>`;
+  const allExisting=caGetAllTags().filter(t=>!caContactTags.includes(t));
+  const filtered = val.trim()
+    ? allExisting.filter(t=>t.toLowerCase().includes(val.toLowerCase()))
+    : allExisting;
+  const items=[...filtered.slice(0,12)];
+  // Proposer création si le tag n'existe pas encore
+  const isNew=val.trim()&&!caGetAllTags().map(t=>t.toLowerCase()).includes(val.trim().toLowerCase())&&!caContactTags.includes(val.trim());
+  if(isNew) items.unshift('__new__:'+val.trim());
+  if(!items.length){dd.style.display='none';return;}
+  dd.style.display='block';
+  dd.innerHTML=items.map(t=>{
+    if(t.startsWith('__new__:')){
+      const v=t.slice(8);
+      return `<div style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--blue);font-weight:600;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem"
+        onmousedown="event.preventDefault();addContactModalTag('${v.replace(/'/g,"\\'")}')"
+        onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+        <span>➕</span> Créer tag &nbsp;<strong>"${v}"</strong></div>`;
+    }
+    return `<div style="padding:.42rem .8rem;cursor:pointer;font-size:.83rem;display:flex;align-items:center;gap:.5rem"
+      onmousedown="event.preventDefault();addContactModalTag('${t.replace(/'/g,"\\'")}')"
+      onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--purple);flex-shrink:0;display:inline-block"></span>${t}</div>`;
+  }).join('');
+}
+
+function closeCaTagSuggest(){
+  const dd=document.getElementById('caTagSuggest');
+  if(dd) dd.style.display='none';
 }
 
 document.getElementById('caContactTagInput').addEventListener('keydown',function(e){
   if(e.key==='Enter'||e.key===','){ e.preventDefault(); const v=this.value.trim(); if(v) addContactModalTag(v); }
-  if(e.key==='Escape'){ document.getElementById('caTagSuggest').innerHTML=''; }
-});
-document.getElementById('caContactTagInput').addEventListener('blur',function(){
-  setTimeout(()=>{ document.getElementById('caTagSuggest').innerHTML=''; }, 150);
+  if(e.key==='Escape'){ closeCaTagSuggest(); }
 });
 
 /* ════════════════════════════════════════
@@ -2002,9 +2227,14 @@ wizStep=1; wizCSVData=[]; wizCSVHeaders=[]; wizImportTags=[];
 function openImportWizard(){
   wizStep=1; wizCSVData=[]; wizCSVHeaders=[]; wizImportTags=[];
   importContactTagsArr=[];
+  _detectedImportCountry=null;
+  const banner=document.getElementById('countryDetectBanner');
+  if(banner) banner.style.display='none';
   document.getElementById('uploadName').style.display='none';
   document.getElementById('uploadZone').classList.remove('drag');
   document.getElementById('csvFileInput').value='';
+  document.getElementById('importTagInput').value='';
+  closeImportTagDd();
   renderImportTags();
   setWizStep(1);
   openCaModal('caImportModal');
@@ -2059,18 +2289,123 @@ function handleCSVDrop(e){
 }
 
 const FIELD_OPTS=['-- Ignorer --','telephone','nom','prenom','email'];
+
+/* ── Détection automatique du pays depuis les préfixes des numéros CSV ── */
+const COUNTRY_PREFIXES=[
+  // Codes longs en premier (évite faux positifs)
+  {pays:'SA', code:'966', flag:'🇸🇦', name:'Arabie Saoudite'},
+  {pays:'AE', code:'971', flag:'🇦🇪', name:'Émirats Arabes'},
+  {pays:'SN', code:'221', flag:'🇸🇳', name:'Sénégal'},
+  {pays:'CI', code:'225', flag:'🇨🇮', name:'Côte d\'Ivoire'},
+  {pays:'CM', code:'237', flag:'🇨🇲', name:'Cameroun'},
+  {pays:'LY', code:'218', flag:'🇱🇾', name:'Libye'},
+  {pays:'TN', code:'216', flag:'🇹🇳', name:'Tunisie'},
+  {pays:'MA', code:'212', flag:'🇲🇦', name:'Maroc'},
+  {pays:'DZ', code:'213', flag:'🇩🇿', name:'Algérie'},
+  {pays:'IT', code:'39',  flag:'🇮🇹', name:'Italie'},
+  {pays:'FR', code:'33',  flag:'🇫🇷', name:'France'},
+  {pays:'ES', code:'34',  flag:'🇪🇸', name:'Espagne'},
+  {pays:'GB', code:'44',  flag:'🇬🇧', name:'Royaume-Uni'},
+  {pays:'DE', code:'49',  flag:'🇩🇪', name:'Allemagne'},
+  {pays:'EG', code:'20',  flag:'🇪🇬', name:'Égypte'},
+];
+// Utilitaire : strip l'indicatif d'un numero et retourne {pays, localTel}
+function stripIndicatif(rawTel){
+  let n = rawTel.replace(/[\s\-\.]/g,'');
+  if(n.startsWith('00')) n = '+' + n.slice(2);
+  const digitsOnly = n.replace(/\D/g,'');
+  if(!n.startsWith('+') && digitsOnly.length >= 10) n = '+' + digitsOnly;
+  if(n.startsWith('+')){
+    const stripped = n.slice(1);
+    const sorted = [...COUNTRY_PREFIXES].sort((a,b)=>b.code.length-a.code.length);
+    for(const cp of sorted){
+      if(stripped.startsWith(cp.code)){
+        const local = stripped.slice(cp.code.length);
+        if(local.length >= 7) return { pays: cp.pays, localTel: local, flag: cp.flag, name: cp.name };
+      }
+    }
+  }
+  return null;
+}
+// Retourne le pays detecte a partir d'un numero brut (pour import CSV)
+function detectPaysFromNum(num){
+  const n=num.replace(/\D/g,'');
+  const sorted=[...COUNTRY_PREFIXES].sort((a,b)=>b.code.length-a.code.length);
+  for(const cp of sorted){
+    if(n.startsWith(cp.code)) return cp;
+  }
+  return null;
+}
+// Analyse tous les numéros du CSV pour détecter le pays dominant
+function autoDetectCountryFromCSV(colIdx){
+  if(colIdx==null||colIdx<0) return null;
+  const counts={};
+  wizCSVData.slice(0,50).forEach(row=>{
+    const num=(row[colIdx]||'').trim().replace(/\s/g,'');
+    if(!num) return;
+    const cp=detectPaysFromNum(num);
+    if(cp){ counts[cp.pays]=(counts[cp.pays]||0)+1; }
+  });
+  if(!Object.keys(counts).length) return null;
+  const dominant=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  const total=wizCSVData.slice(0,50).filter(r=>(r[colIdx]||'').trim()).length||1;
+  const pct=Math.round(dominant[1]/total*100);
+  return {pays:dominant[0], count:dominant[1], pct, ...COUNTRY_PREFIXES.find(c=>c.pays===dominant[0])};
+}
+// Variable globale pour stocker le pays détecté
+let _detectedImportCountry = null;
+
+function runCountryDetection(){
+  // Trouver la colonne telephone
+  let telCol=null;
+  wizCSVHeaders.forEach((h,i)=>{
+    if(document.getElementById('colMap'+i)&&document.getElementById('colMap'+i).value==='telephone') telCol=i;
+  });
+  const banner=document.getElementById('countryDetectBanner');
+  if(!banner) return;
+  if(telCol===null){ banner.style.display='none'; _detectedImportCountry=null; return; }
+  const det=autoDetectCountryFromCSV(telCol);
+  if(!det){ banner.style.display='none'; _detectedImportCountry=null; return; }
+  _detectedImportCountry=det.pays;
+  banner.style.display='block';
+  banner.innerHTML=`<span style="font-size:1.1rem">${det.flag}</span>
+    <strong>Pays détecté automatiquement : ${det.name} (+${det.code})</strong> — ${det.pct}% des numéros correspondent.
+    <span style="color:var(--muted);font-size:.77rem;display:block;margin-top:.2rem">Les contacts seront importés avec l'indicatif ${det.flag} ${det.name}.</span>`;
+}
+
+/* ── Exclusivité du mapping : un champ ne peut être mappé qu'une seule fois ── */
+function enforceUniqueMapping(changedIdx){
+  const changedSel = document.getElementById('colMap'+changedIdx);
+  if(!changedSel) return;
+  const selectedVal = changedSel.value;
+  // Si valeur significative (pas Ignorer), désélectionner les autres selects qui ont la même valeur
+  if(selectedVal !== '-- Ignorer --'){
+    wizCSVHeaders.forEach((h,i)=>{
+      if(i === changedIdx) return;
+      const sel = document.getElementById('colMap'+i);
+      if(sel && sel.value === selectedVal){
+        sel.value = '-- Ignorer --';
+        // Feedback visuel bref
+        sel.style.borderColor = 'var(--orange)';
+        setTimeout(()=>{ sel.style.borderColor=''; }, 1000);
+      }
+    });
+  }
+  runCountryDetection();
+}
+
 function buildColMapping(){
   const grid=document.getElementById('colMapGrid');
   grid.innerHTML=wizCSVHeaders.map((h,i)=>{
-    let auto=FIELD_OPTS.findIndex(f=>f.toLowerCase().includes(h.toLowerCase()))||0;
-    if(h.toLowerCase().match(/tel|phone|msisdn/))auto=1;
-    if(h.toLowerCase().match(/^nom$|surname|last/))auto=2;
-    if(h.toLowerCase().match(/pr[ée]nom|first/))auto=3;
-    if(h.toLowerCase().match(/email|mail/))auto=4;
+    let auto=0;
+    if(h.toLowerCase().match(/tel|phone|msisdn/)) auto=1;
+    else if(h.toLowerCase().match(/^nom$|surname|last/)) auto=2;
+    else if(h.toLowerCase().match(/pr[ée]nom|first/)) auto=3;
+    else if(h.toLowerCase().match(/email|mail/)) auto=4;
     return `<div class="col-map-grid">
       <div class="col-raw">${h}</div>
       <div class="col-map-arrow">→</div>
-      <select class="col-sel" id="colMap${i}">${FIELD_OPTS.map((f,j)=>`<option value="${f}" ${j===auto?'selected':''}>${f}</option>`).join('')}</select>
+      <select class="col-sel" id="colMap${i}" onchange="enforceUniqueMapping(${i})">${FIELD_OPTS.map((f,j)=>`<option value="${f}" ${j===auto?'selected':''}>${f}</option>`).join('')}</select>
     </div>`;
   }).join('');
   // CSV preview
@@ -2078,6 +2413,10 @@ function buildColMapping(){
   const rows=wizCSVData.slice(0,5);
   pt.innerHTML=`<thead style="background:var(--gray-light)"><tr>${wizCSVHeaders.map(h=>`<th style="padding:.3rem .6rem;font-size:.7rem;border:1px solid var(--border)">${h}</th>`).join('')}</tr></thead><tbody>`
     +rows.map(r=>`<tr>${r.map(v=>`<td style="padding:.28rem .6rem;font-size:.72rem;border:1px solid var(--border)">${v}</td>`).join('')}</tr>`).join('')+`</tbody>`;
+  // Appliquer l'exclusivité sur le mapping auto détecté
+  wizCSVHeaders.forEach((h,i)=>{ const sel=document.getElementById('colMap'+i); if(sel && sel.value!=='-- Ignorer --') enforceUniqueMapping(i); });
+  // Lancer la détection pays automatique
+  setTimeout(runCountryDetection, 100);
 }
 
 let wizFileName='';
@@ -2094,11 +2433,9 @@ function buildImportSummary(){
   document.getElementById('sumFile').textContent=wizFileName||'fichier.csv';
   document.getElementById('sumTotal').textContent=total;
   document.getElementById('sumValid').textContent=valid;
-  // tags from import field
-  const tagChips=document.getElementById('importTagsWrap').querySelectorAll('.ca-tag-chip');
-  const tagNames=[...tagChips].map(c=>c.textContent.slice(0,-1).trim());
-  wizImportTags=tagNames;
-  document.getElementById('sumTags').innerHTML=tagNames.length?tagNames.map(t=>`<span class="tag-pill">${t}</span>`).join(''):`<span style="color:var(--muted)">Aucun</span>`;
+  // tags from importContactTagsArr array (pas depuis le DOM)
+  wizImportTags=[...importContactTagsArr];
+  document.getElementById('sumTags').innerHTML=wizImportTags.length?wizImportTags.map(t=>`<span class="tag-pill">${t}</span>`).join(''):`<span style="color:var(--muted)">Aucun</span>`;
 }
 
 async function runImport(){
@@ -2110,18 +2447,21 @@ async function runImport(){
   let imported=0, dups=0, errors=0;
   const BATCH=20;
 
-  // Construire tous les contacts valides
+  // Construire tous les contacts valides avec détection pays par numéro
   const contactsToSend=[];
   for(let i=0;i<total;i++){
     const row=wizCSVData[i];
     const tel=(row[mapping['telephone']]||'').trim().replace(/\s/g,'');
     if(!tel)continue;
+    // Detecter pays depuis l'indicatif du numero (sans le stripper)
+    const cpNum = detectPaysFromNum(tel);
+    const pays = cpNum ? cpNum.pays : (_detectedImportCountry || 'TN');
     contactsToSend.push({
       telephone:tel,
       nom:(row[mapping['nom']]||'').trim(),
       prenom:(row[mapping['prenom']]||'').trim(),
       email:(row[mapping['email']]||'').trim(),
-      pays:'TN',
+      pays,
       tags:[...wizImportTags],
     });
   }
@@ -2156,34 +2496,40 @@ let importContactTagsArr=[];
 let importTagDdOpen=false;
 
 function caSuggestImportTags(val){
-  const all=caGetAllTags().filter(t=>t.toLowerCase().includes(val.toLowerCase())&&!importContactTagsArr.includes(t));
-  const ddId='importTagDd';
-  let dd=document.getElementById(ddId);
-  if(!dd){
-    dd=document.createElement('div');
-    dd.id=ddId;
-    dd.style.cssText='position:absolute;width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-xs);box-shadow:var(--shadow-md);z-index:9999;max-height:180px;overflow-y:auto;top:100%;left:0';
-    document.getElementById('importTagsWrap').style.position='relative';
-    document.getElementById('importTagsWrap').appendChild(dd);
+  const dd=document.getElementById('importTagDd');
+  if(!dd) return;
+  // Positionner le dropdown en fixed sous le champ input
+  const box=document.getElementById('importTagInputBox');
+  if(box){
+    const r=box.getBoundingClientRect();
+    dd.style.left=r.left+'px';
+    dd.style.width=r.width+'px';
+    dd.style.top=(r.bottom+3)+'px';
   }
-  if(!all.length && !val.trim()){dd.style.display='none';return;}
-  const items=[...all.slice(0,8)];
-  if(val.trim()&&!caGetAllTags().includes(val.trim())&&!importContactTagsArr.includes(val.trim())){
-    items.unshift('__new__:'+val.trim());
-  }
-  if(!items.length){dd.style.display='none';return;}
+  const allExisting=caGetAllTags().filter(t=>!importContactTagsArr.includes(t));
+  const filtered = val.trim()
+    ? allExisting.filter(t=>t.toLowerCase().includes(val.toLowerCase()))
+    : allExisting;
+
+  const items=[...filtered.slice(0,12)];
+  // Option "créer nouveau tag" si pas dans la liste
+  const isNew = val.trim() && !caGetAllTags().map(t=>t.toLowerCase()).includes(val.trim().toLowerCase()) && !importContactTagsArr.includes(val.trim());
+  if(isNew) items.unshift('__new__:'+val.trim());
+
+  if(!items.length){ dd.style.display='none'; return; }
   dd.style.display='block';
   dd.innerHTML=items.map(t=>{
     if(t.startsWith('__new__:')){
       const v=t.slice(8);
-      return `<div style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;color:var(--blue);font-weight:600;border-bottom:1px solid var(--border)"
+      return `<div style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--blue);font-weight:600;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem"
         onmousedown="event.preventDefault();addImportTag('${v.replace(/'/g,"\\'")}')"
         onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
-        ➕ Créer tag "<strong>${v}</strong>"</div>`;
+        <span>➕</span> Créer tag &nbsp;<strong>"${v}"</strong></div>`;
     }
-    return `<div style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;display:flex;justify-content:space-between;align-items:center"
+    return `<div style="padding:.42rem .8rem;cursor:pointer;font-size:.83rem;display:flex;align-items:center;gap:.5rem"
       onmousedown="event.preventDefault();addImportTag('${t.replace(/'/g,"\\'")}')"
-      onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">${t}</div>`;
+      onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--purple);flex-shrink:0;display:inline-block"></span>${t}</div>`;
   }).join('');
 }
 
@@ -2199,6 +2545,8 @@ function addImportTag(tag){
   document.getElementById('importTagInput').value='';
   renderImportTags();
   closeImportTagDd();
+  // Rouvrir avec liste vide pour montrer les tags restants
+  setTimeout(()=>caSuggestImportTags(''),50);
 }
 
 document.getElementById('importTagInput').addEventListener('keydown',function(e){
@@ -2209,18 +2557,16 @@ document.getElementById('importTagInput').addEventListener('keydown',function(e)
   }
   if(e.key==='Escape') closeImportTagDd();
 });
-document.getElementById('importTagInput').addEventListener('blur',function(){
-  setTimeout(closeImportTagDd, 150);
-});
 
 function renderImportTags(){
-  const wrap=document.getElementById('importTagsWrap'),input=document.getElementById('importTagInput');
-  wrap.querySelectorAll('.ca-tag-chip').forEach(e=>e.remove());
-  importContactTagsArr.forEach(tag=>{
-    const chip=document.createElement('span');chip.className='ca-tag-chip';
-    chip.innerHTML=`${tag} <span class="rm" onmousedown="event.preventDefault();removeImportTag('${tag.replace(/'/g,"\\'")}')" >×</span>`;
-    wrap.insertBefore(chip,input);
-  });
+  const row=document.getElementById('importTagChipsRow');
+  if(!row) return;
+  row.innerHTML=importContactTagsArr.map(tag=>`
+    <span style="display:inline-flex;align-items:center;gap:.28rem;background:var(--purple);color:white;border-radius:5px;padding:.18rem .55rem .18rem .48rem;font-size:.78rem;font-weight:500">
+      🏷️ ${tag}
+      <span onmousedown="event.preventDefault();removeImportTag('${tag.replace(/'/g,"\\'")}');return false"
+        style="cursor:pointer;opacity:.8;font-size:1rem;line-height:1;margin-left:.1rem" title="Retirer">×</span>
+    </span>`).join('');
 }
 function removeImportTag(tag){importContactTagsArr=importContactTagsArr.filter(t=>t!==tag);renderImportTags();}
 
@@ -2228,7 +2574,7 @@ function removeImportTag(tag){importContactTagsArr=importContactTagsArr.filter(t
    MODAL HELPERS
 ════════════════════════════════════════ */
 function openCaModal(id){document.getElementById(id).classList.add('open');}
-function closeCaModal(id){document.getElementById(id).classList.remove('open');}
+function closeCaModal(id){document.getElementById(id).classList.remove('open');closeCaTagSuggest();}
 ['caContactModal','caViewModal','caDeleteModal','caImportModal','caBulkTagModal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeCaModal(id);});
 });
@@ -2545,10 +2891,11 @@ function syncGroupesIntoSelector() {
     opt.dataset.budget = g.quotaLibre;
     opt.dataset.groupeId = g.id;
     opt.dataset.conso30j = g.conso30j;
-    opt.textContent = g.nom + ' (Quota libre : ' + gpFmt(g.quotaLibre) + ' cr)';
+    opt.textContent = g.nom;   // Afficher uniquement le nom du groupe
     sel.appendChild(opt);
   });
   if (current) sel.value = current;
+  updateStats();
 }
 
 /* ── Détail groupe ── */
