@@ -2639,7 +2639,26 @@ GP_DATA.forEach(g => {
   g.aReco = Math.max(0, Math.round(g.conso30j - g.quotaLibre + g.quotaTotal * S));
 });
 
-const ORG_BUDGET = 250000;
+let ORG_BUDGET = 250000;   // valeur de fallback (sera écrasée par l'API)
+
+/* Charge le budget de l'organisation depuis l'API.
+   Appelée au démarrage + après chaque ajout de groupe + après chaque recharge. */
+async function loadOrgBudget() {
+  try {
+    const baseUrl = (typeof BASE === 'function' ? BASE() : 'http://localhost:5000');
+    const r = await fetch(baseUrl + '/organization');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const org = await r.json();
+    ORG_BUDGET = Number(org.budget_libre) || 0;
+    const el = document.getElementById('dbKBudget');
+    if (el) el.textContent = gpFmt(ORG_BUDGET);
+  } catch (e) {
+    console.warn('[loadOrgBudget] API down, garde valeur par défaut :', e.message);
+  }
+}
+
+// Au démarrage : charge le budget org depuis MySQL
+window.addEventListener('DOMContentLoaded', loadOrgBudget);
 
 function gpRisque(g) {
   // Si l'API a fourni le risque calculé par le ML (champ risqueML), on l'utilise direct.
@@ -3014,21 +3033,46 @@ function gpPreset(t) {
   const g = GP_DATA.find(x => x.id === _gpCurrentId);
   if (g) document.getElementById('gpRechargeMontant').value = t === 'amin' ? g.aMin : g.aReco;
 }
-function gpConfirmRecharge() {
+async function gpConfirmRecharge() {
   const g = GP_DATA.find(x => x.id === _gpCurrentId);
   if (!g) return;
   const m = parseInt(document.getElementById('gpRechargeMontant').value, 10);
   if (!m || m <= 0) { showToast('⚠️ Montant invalide — entrez un nombre positif'); return; }
-  g.quotaTotal += m;
-  g.quotaLibre += m;
-  const S = 0.30, M = 0.15;
-  g.aMin  = Math.max(0, Math.round(g.conso30j - g.quotaLibre + g.quotaTotal * M));
-  g.aReco = Math.max(0, Math.round(g.conso30j - g.quotaLibre + g.quotaTotal * S));
-  gpCloseRecharge();
-  showToast('✅ ' + gpFmt(m) + ' ajoutés au groupe ' + g.nom);
-  gpShowDetail(g.id);
-  if (_gpLoaded) gpRenderTable();
-  _dbReady = false; // forcer recalcul dashboard
+
+  // Désactive le bouton + toast de patience
+  const btnConfirm = document.querySelector('#gpRechargeOverlay .btn-primary');
+  if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.innerHTML = '<span class="spinner-inline"></span> Enregistrement…'; }
+
+  try {
+    // Appel API → MySQL : INSERT budget_history + UPDATE groupe + UPDATE predictions SAFE
+    const baseUrl = (typeof BASE === 'function' ? BASE() : 'http://localhost:5000');
+    const r = await fetch(baseUrl + '/groupes/' + g.id + '/recharge', {
+      method:  'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ montant: m }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      showToast('❌ ' + (data.error || 'Erreur API'));
+      return;
+    }
+
+    gpCloseRecharge();
+    showToast('✅ ' + gpFmt(m) + ' ajoutés à ' + g.nom + ' (BDD + risque SAFE)');
+
+    // Recharge depuis l'API → quota + risque mis à jour viennent de MySQL
+    await gpRefreshAll();
+    if (typeof loadOrgBudget === 'function') await loadOrgBudget();   // refresh budget org
+
+    // Réaffiche le détail avec les nouvelles valeurs
+    gpShowDetail(g.id);
+    _dbReady = false;
+  } catch (e) {
+    console.error('[gpConfirmRecharge]', e);
+    showToast('❌ Échec : ' + e.message);
+  } finally {
+    if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = 'Confirmer la recharge'; }
+  }
 }
 
 // Fermer modal en cliquant l'overlay

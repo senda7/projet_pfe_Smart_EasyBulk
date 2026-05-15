@@ -1,3 +1,21 @@
+"""
+╔══════════════════════════════════════════════════════════════════╗
+║  01_load_and_explore.py                                          ║
+║                                                                  ║
+║  RÔLE : Charger les données brutes, détecter et corriger         ║
+║         toutes les anomalies avant tout traitement.              ║
+║                                                                  ║
+║  ENTRÉE  → data/groupes.json                                     ║
+║            data/campagnes.json                                   ║
+║            data/budget_history.json                              ║
+║                                                                  ║
+║  SORTIE  → output/clean_groupes.json       (groupes validés)     ║
+║            output/clean_campagnes.json     (campagnes validées)  ║
+║            output/clean_budget_history.json (historique propre)  ║
+║            output/cleaning_report.txt      (rapport nettoyage)   ║
+╚══════════════════════════════════════════════════════════════════╝
+"""
+
 import json, os
 import pandas as pd
 import numpy  as np
@@ -43,27 +61,93 @@ def load_json(name):
     with open(os.path.join(DATA, f"{name}.json"), encoding="utf-8") as f:
         return json.load(f)
 
+
+def load_from_mysql():
+    """
+    Lit les 4 tables depuis MySQL `easybulk`.
+    Retourne (df_groupes, df_camps, df_budget, df_ctp) ou None si MySQL down.
+    """
+    try:
+        import pymysql
+        conn = pymysql.connect(
+            host="localhost", port=3306, user="root", password="",
+            database="easybulk", charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor
+        )
+    except Exception as e:
+        warn(f"MySQL inaccessible : {e}")
+        return None
+
+    try:
+        with conn.cursor() as cur:
+            # groupe : renomme created_at/updated_at → camelCase pour rester compatible
+            cur.execute("""
+                SELECT id, name, description, quota, quotaLoked, quotaFree,
+                       status_id, organization_id, admin_id,
+                       created_at AS createdAt, updated_at AS updatedAt
+                  FROM groupe
+            """)
+            df_g = pd.DataFrame(cur.fetchall())
+
+            cur.execute("""
+                SELECT id, groupe_id, modificationDate, amount, status_id
+                  FROM budget_history
+            """)
+            df_b = pd.DataFrame(cur.fetchall())
+            # convertit Date Python → string ISO comme dans JSON
+            if not df_b.empty and "modificationDate" in df_b.columns:
+                df_b["modificationDate"] = df_b["modificationDate"].astype(str)
+
+            cur.execute("""
+                SELECT id, libelle, description, dateDebut, dateFin, dureValidite,
+                       cost, budgetUsed, nbrPage, countContact,
+                       deactivatedByGroup, hash, meOnly,
+                       lastUpdateStatusAt, createdAt, updatedAt,
+                       status_id, campaign_type_permission_id
+                  FROM campagne
+            """)
+            df_c = pd.DataFrame(cur.fetchall())
+
+            cur.execute("""
+                SELECT id, enabled, groupe_id, campaign_type
+                  FROM campaign_type_permission
+            """)
+            df_ctp = pd.DataFrame(cur.fetchall())
+
+        return df_g, df_c, df_b, df_ctp
+    finally:
+        try: conn.close()
+        except Exception: pass
+
+
 # ════════════════════════════════════════════════════════════════
-# ÉTAPE 1  —  CHARGEMENT
+# ÉTAPE 1  —  CHARGEMENT (MySQL d'abord, fallback JSON)
 # ════════════════════════════════════════════════════════════════
-title("ÉTAPE 1  —  CHARGEMENT DES FICHIERS SOURCES")
+title("ÉTAPE 1  —  CHARGEMENT DES SOURCES")
 
-df_groupes  = pd.DataFrame(load_json("groupes"))
-df_camps    = pd.DataFrame(load_json("campagnes"))
-df_budget   = pd.DataFrame(load_json("budget_history"))
+_loaded = load_from_mysql()
+if _loaded is not None:
+    df_groupes, df_camps, df_budget, df_ctp = _loaded
+    SOURCE = "MySQL easybulk"
+    ok("Source : MySQL `easybulk` (table groupe / budget_history / campagne / campaign_type_permission)")
+else:
+    info("Fallback : chargement depuis data/*.json")
+    df_groupes  = pd.DataFrame(load_json("groupes"))
+    df_camps    = pd.DataFrame(load_json("campagnes"))
+    df_budget   = pd.DataFrame(load_json("budget_history"))
+    df_ctp      = pd.DataFrame(load_json("campaign_type_permission"))
+    SOURCE = "data/*.json"
 
-# P2 : campagnes.json est conforme au modèle Java → pas de groupe_id direct,
-#      mais campaign_type_permission_id. On JOIN avec la table CTP pour
-#      dénormaliser et obtenir groupe_id, qu'utilise le reste du pipeline.
-df_ctp = pd.DataFrame(load_json("campaign_type_permission"))[
-    ["id", "groupe_id", "campaign_type"]
-].rename(columns={"id": "campaign_type_permission_id"})
-df_camps = df_camps.merge(df_ctp, on="campaign_type_permission_id", how="left")
+# JOIN campagne ↔ campaign_type_permission pour obtenir groupe_id sur les campagnes
+df_ctp_join = df_ctp[["id", "groupe_id", "campaign_type"]].rename(
+    columns={"id": "campaign_type_permission_id"}
+)
+df_camps = df_camps.merge(df_ctp_join, on="campaign_type_permission_id", how="left")
 
-info(f"groupes.json                     :  {len(df_groupes):>4} lignes")
-info(f"campagnes.json                   :  {len(df_camps):>4} lignes")
-info(f"budget_history.json              :  {len(df_budget):>4} lignes")
-info(f"campaign_type_permission.json    :  {len(df_ctp):>4} lignes (JOIN → groupe_id)")
+info(f"groupes                          :  {len(df_groupes):>4} lignes  (source : {SOURCE})")
+info(f"campagnes                        :  {len(df_camps):>4} lignes")
+info(f"budget_history                   :  {len(df_budget):>4} lignes")
+info(f"campaign_type_permission         :  {len(df_ctp):>4} lignes (JOIN → groupe_id)")
 
 # ════════════════════════════════════════════════════════════════
 # ÉTAPE 2  —  NETTOYAGE  :  GROUPES
