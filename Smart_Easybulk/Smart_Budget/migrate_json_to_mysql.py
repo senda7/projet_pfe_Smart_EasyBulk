@@ -158,7 +158,7 @@ def main():
         CREATE TABLE IF NOT EXISTS budget_history (
             id                INT AUTO_INCREMENT PRIMARY KEY,
             groupe_id         INT,
-            modification_date DATE,
+            modificationDate DATE,
             amount            BIGINT,
             status_id         INT DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -305,7 +305,7 @@ def main():
     # ── 9. budget_history ─────────────────────────────────────
     title("ÉTAPE 9 — budget_history (recharges + consommations)")
     sql = """
-        INSERT INTO budget_history (id, groupe_id, modification_date, amount, status_id)
+        INSERT INTO budget_history (id, groupe_id, modificationDate, amount, status_id)
         VALUES (%s, %s, %s, %s, %s)
     """
     batch = []

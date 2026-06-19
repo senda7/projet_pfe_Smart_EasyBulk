@@ -1,16 +1,3 @@
-"""
-──────────────────────────────────────────────────────────────────
-USAGE :
-    pip install flask flask-cors pymysql
-    python api.py
-
-ENDPOINTS :
-    GET  /groupes          → liste groupes + prédictions ML
-    POST /groupes          → crée un groupe (MySQL + JSON local)
-    GET  /groupes/<id>     → détail un groupe
-    GET  /health           → statut API (topbar HTML)
-"""
-
 import os, sys, json, math
 from datetime import date, timedelta
 import numpy  as np
@@ -31,14 +18,15 @@ OUT  = os.path.join(BASE, "output")
 DATA = os.path.join(BASE, "data")
 
 # ════════════════════════════════════════════════════════════════
-# CONFIG MYSQL (adapter selon ton XAMPP)
+# CONFIG MYSQL — lit les variables d'environnement (Docker)
+# avec valeurs par défaut pour le développement local (XAMPP).
 # ════════════════════════════════════════════════════════════════
 DB_CONFIG = {
-    "host"    : "localhost",
-    "port"    : 3306,
-    "user"    : "root",        # utilisateur XAMPP par défaut
-    "password": "",            # mot de passe XAMPP (vide par défaut)
-    "database": "easybulk",    # nom de ta base de données
+    "host"    : os.environ.get("DB_HOST",     "localhost"),
+    "port"    : int(os.environ.get("DB_PORT", "3306")),
+    "user"    : os.environ.get("DB_USER",     "root"),
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "database": os.environ.get("DB_NAME",     "easybulk"),
     "charset" : "utf8mb4",
 }
 
@@ -53,9 +41,7 @@ def get_db():
         return None
 
 
-# ════════════════════════════════════════════════════════════════
 # UTILITAIRES
-# ════════════════════════════════════════════════════════════════
 
 def _clean(v):
     if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
@@ -97,11 +83,7 @@ def _evenements(p30):
             for n in noms]
 
 def _fetch_predictions_from_db(gid):
-    """
-    Lit les prédictions ML les plus récentes pour ce groupe depuis
-    MySQL.predictions. Retourne dict {7: {…}, 14: {…}, 30: {…}}
-    ou {} si vide (= scheduler pas encore passé).
-    """
+
     conn = get_db()
     if not conn:
         return {}
@@ -130,18 +112,7 @@ def _fetch_predictions_from_db(gid):
 
 
 def _build_groupe(row, res):
-    """
-    Construit l'objet groupe complet renvoyé au HTML.
 
-    SOURCE DES PRÉDICTIONS :
-      1. D'abord on essaie de lire MySQL.predictions (rempli par le
-         scheduler à minuit + dimanche). C'est INSTANTANÉ (10 ms).
-      2. Si vide (premier démarrage, MySQL down…), fallback sur
-         predict.py LIVE — plus lent mais marche toujours.
-
-    Les valeurs réelles (quota_libre cumsum, conso ML, risque…)
-    viennent toujours de predict.py — directement ou via le cache BDD.
-    """
     gid       = int(row["id"])
     est_actif = int(row.get("est_actif", 1)) == 1
 
@@ -237,10 +208,8 @@ def _build_groupe(row, res):
         "_source"    : "predict.py-live",   # debug
     }
 
+#========== HELPERS JSON LOCAL (fallback si MySQL down)===========
 
-# ════════════════════════════════════════════════════════════════
-# HELPERS JSON LOCAL (fallback si MySQL down)
-# ════════════════════════════════════════════════════════════════
 
 def _lire_groupes_json():
     """Lit data/groupes.json (fichier source du pipeline Python)."""
@@ -277,16 +246,12 @@ def _prochain_id_json():
     return max(int(g.get("id", 0)) for g in groupes) + 1
 
 
-# ════════════════════════════════════════════════════════════════
-# ENDPOINTS
-# ════════════════════════════════════════════════════════════════
+#=========== ENDPOINTS=================
+
 
 @app.route("/", methods=["GET"])
 def index():
-    """
-    Page d'accueil — confirme que l'API tourne.
-    Ouvrir v3_enhanced.html dans le navigateur, pas cette URL.
-    """
+
     return """
     <html><head><title>Budget ML API</title>
     <style>
@@ -696,6 +661,7 @@ def _job_weekly_retrain():
     print("│ Tâche HEBDOMADAIRE : retrain complet")
     print("└─────────────────────────────────────────────────")
     steps = [
+        ("load_and_explore.py",    "Nettoyage et chargement des données")
         ("feature_engineering.py", "Régénération features.csv"),
         ("train_models.py",        "Entraînement des modèles RF"),
     ]

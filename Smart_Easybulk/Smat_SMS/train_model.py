@@ -31,7 +31,7 @@ CONFIG = {
     'MONGO_DB': 'test',
     'MONGO_COL': 'contel',
     'OUTPUT_DIR': str(_BASE_DIR / 'outputs'),
-    'MODEL_PKL': str(_BASE_DIR / 'outputs' / 'model_assets.joblib'),  # joblib
+    'MODEL_PKL': str(_BASE_DIR / 'outputs' / 'model_assets.joblib'),
     'MODEL_XGB': str(_BASE_DIR / 'outputs' / 'xgboost_model.json'),
     'PREDICTIONS_CSV': str(_BASE_DIR / 'outputs' / 'contact_predictions.csv'),
     'METRICS_JSON': str(_BASE_DIR / 'outputs' / 'eval_metrics.json'),
@@ -44,31 +44,27 @@ CONFIG = {
 }
 os.makedirs(CONFIG['OUTPUT_DIR'], exist_ok=True)
 
-VALID_STATUSES = {1, 2, 4, 8}
-STATUSES_TO_CLEAN = {0, 16, 34}
-DLR_NORM = {1: 1, 2: 2, 4: 2, 8: 2}
-DLR_SUCCESS = frozenset({1})
-DLR_FAILURE = frozenset({2})
+VALID_STATUSES = {1, 2, 4, 8}        # statuts DLR valides à garder
+STATUSES_TO_CLEAN = {0, 16, 34}      # statuts supprimés lors du nettoyage des données
+DLR_NORM = {1: 1, 2: 2, 4: 2, 8: 2}  # normalisation des statuts
+DLR_SUCCESS = frozenset({1})         # les SMS livrés
+DLR_FAILURE = frozenset({2})         # les SMS non livrés
 DLR_NA = frozenset({0, 16, 34})
 DLR_TRANSIT = frozenset({4, 8})
-DLR_FINAL = DLR_SUCCESS | DLR_FAILURE
+DLR_FINAL = DLR_SUCCESS | DLR_FAILURE   # les statuts finaux après normalisation
+
 XGB_FEATURE_COLS = [
-    # Signal principal — joignabilité historique
-    'n_succes_hist',               # nb succès total (feature #1 importance)
-    'jours_depuis_succes',         # ancienneté du dernier succès (feature #2)
-    'score_recence_pondere',       # time-decay succès/échecs (signal composite)
-    # Fenêtre 30j — comportement récent
+    'n_succes_hist',               # nb succès total
+    'jours_depuis_succes',         # ancienneté du dernier succès
+    'score_recence_pondere',       # time-decay succès/échecs
     'n_succes_30j',                # succès récents
-    'taux_succes_30j',             # taux récent (Laplace-smoothed)
-    # Dégradation en cours
+    'taux_succes_30j',             # taux récent
     'echecs_consecutifs_fin',      # échecs consécutifs récents
-    # Volume et cadence
     'n_envois_hist',               # volume total d'envois
     'jours_depuis_dernier_envoi',  # inactivité récente
 ]
 
 RSF_FEATURE_COLS = [
-    # Essentiels pour modéliser la durée de survie
     'jours_depuis_succes',         # durée depuis dernier succès → corrélé à duree_survie
     'score_recence_pondere',       # signal composite joignabilité
     'n_succes_hist',               # quantité de succès passés
@@ -76,18 +72,16 @@ RSF_FEATURE_COLS = [
     'echecs_consecutifs_fin',      # dégradation finale
     'jours_depuis_dernier_envoi',  # inactivité
 ]
-
 RSF_EXTRA_COLS = [
     'evenement_na',
     'duree_survie_jours',
 ]
 SCORE_THRESHOLDS = {
-    'available': 50,   # équilibre précision/recall Available
-    'suspected': 38,   # seuil Suspected raisonnable
+    'available': 50,   # seuil Available
+    'suspected': 38,   # seuil Suspected
 }
 
-
-# =========================Extraction des données ==================================
+# =========================Extraction des données ================================
 def load_from_mongodb():
     from pymongo import MongoClient
     client = MongoClient(CONFIG['MONGO_URI'])
@@ -96,9 +90,7 @@ def load_from_mongodb():
     for doc in cursor:
         yield doc
     client.close()
-
-
-# ============================== Filtrage et validation =================================================
+# ============================== Filtrage et validation =============================
 def filter_and_validate(generator):
 
     DATE_FMT = '%Y-%m-%d %H:%M:%S'
@@ -114,7 +106,7 @@ def filter_and_validate(generator):
     for r in generator:
         stats['total_raw'] += 1
 
-        # ── Validation MSISDN ─────────────────────────────────────────────────
+        # ---------Validation MSISDN-------
         msisdn = str(r.get('msisdn', '')).strip()
         if not msisdn or len(msisdn) < 8 or not msisdn.lstrip('+').isdigit():
             stats['invalid_msisdn'] += 1
@@ -156,7 +148,7 @@ def filter_and_validate(generator):
     return valid, stats
 
 
-# ==========================Normalisation des statuts DLR=======================================================
+# ==========================Normalisation des statuts DLR==================================================
 def normalise_statuses(valid_records):
     normalised_count = 0
     for rec in valid_records:
@@ -301,13 +293,7 @@ def build_features(contacts):
         n_echecs_recent = sum(1 for h in hist[-3:] if h['status'] in DLR_FAILURE)
         evenement_na = (last_status in DLR_FAILURE) or (n_echecs_recent >= 2)
 
-        # duree_survie_jours — chercher le dernier succès dans TOUT hist (pas seulement hist_past)
-        #
-        # POURQUOI hist complet et non hist_past :
-        #   - 89% des contacts ont 1 seul envoi → hist_past = [] → last_ok_dt = None → duree = 1j
-        #   - Le dernier envoi peut être un succès (Available) → il DOIT compter pour la durée RSF
-        #   - On utilise hist complet pour avoir la vraie date du dernier succès observé
-        #   - Pas de leakage : duree_survie_jours est une target RSF, pas une feature XGBoost
+
         last_ok_dt_full = next(
             (h['dt'] for h in reversed(hist) if h['status'] in DLR_SUCCESS), None
         )
@@ -353,7 +339,7 @@ def build_features(contacts):
         )
     return df
 
-# ======================== Encodage des labels ======================================================================
+# ======================== Encodage des labels ====================================================
 def encode_labels(df_real):
     df = df_real.copy()
     df['source'] = 'real'
@@ -367,7 +353,7 @@ def encode_labels(df_real):
     log.info(f"label_map dynamique : {label_map} | num_class={num_class}")
     return df, label_map
 
-# ======================= XGBoost Hyperparameter ===================================================================
+# ======================= XGBoost Hyperparameter ====================================================
 def _default_xgb_params():
     return dict(
         n_estimators=400,
@@ -479,7 +465,7 @@ def _tune_xgboost_grid(X_tr, y_tr, X_val, y_val, num_class, sw_tr=None, sw_val=N
     return best_params
 
 
-# ============================Training XGBoost (sans fuite de scaling car pas de scaling ici)=================
+# ============================Training XGBoost ==============================
 def _apply_smote(X_tr, y_tr):
 
     try:
@@ -744,7 +730,7 @@ def evaluate_model(model, X_test, y_test, label_map):
     return metrics
 
 
-# ==================================== RSF avec Feature Scaling (sans fuite) ========================================
+# ==================================== RSF train ========================================
 def train_rsf(df):
     from sksurv.ensemble import RandomSurvivalForest
     from sksurv.util import Surv
@@ -1017,7 +1003,7 @@ def compute_scores(xgb_model, rsf_preds, X, avail_threshold=0.5, label_map=None,
     return pd.DataFrame(rows)
 
 
-# ========================== Sauvegarde du modèle (joblib + JSON) ===================================================
+# ========================== Sauvegarde du modèle ======================================================
 def save_model(xgb_model, rsf_model, rsf_scaler, label_map, eval_metrics=None, avail_threshold=0.5):
     xgb_model.save_model(CONFIG['MODEL_XGB'])
     FUSION_PARAMS = {
@@ -1239,6 +1225,6 @@ def start_scheduler():
         log.info("Scheduler arrêté.")
 
 
-# ===================================== point d'entrée ==============================================================
+# ==============p.p=========================
 if __name__ == '__main__':
     start_scheduler()

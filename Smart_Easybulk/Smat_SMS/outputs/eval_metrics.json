@@ -1,45 +1,45 @@
 {
-  "accuracy": 0.939,
-  "precision_macro": 0.9464,
-  "recall_macro": 0.9445,
-  "f1_macro": 0.9449,
-  "f1_weighted_balanced": 0.9445,
-  "auc_roc_macro": 0.9921,
+  "accuracy": 0.943,
+  "precision_macro": 0.9463,
+  "recall_macro": 0.943,
+  "f1_macro": 0.9444,
+  "f1_weighted_balanced": 0.9434,
+  "auc_roc_macro": 0.9938,
   "per_class": {
     "Available": {
-      "precision": 0.8946,
-      "recall": 0.9504,
-      "f1": 0.9216,
+      "precision": 0.9096,
+      "recall": 0.9427,
+      "f1": 0.9258,
       "support": 4152
     },
     "Suspected": {
-      "precision": 0.9476,
-      "recall": 0.8884,
-      "f1": 0.917,
-      "support": 4031
+      "precision": 0.9382,
+      "recall": 0.936,
+      "f1": 0.9371,
+      "support": 3388
     },
     "NA": {
-      "precision": 0.9972,
-      "recall": 0.9947,
-      "f1": 0.9959,
-      "support": 2820
+      "precision": 0.9913,
+      "recall": 0.9503,
+      "f1": 0.9704,
+      "support": 3463
     }
   },
   "confusion_matrix": [
     [
-      3946,
-      198,
-      8
+      3914,
+      209,
+      29
     ],
     [
-      450,
-      3581,
+      217,
+      3171,
       0
     ],
     [
-      15,
+      172,
       0,
-      2805
+      3291
     ]
   ],
   "test_split_size": 0.2,
@@ -47,8 +47,8 @@
   "n_test_samples": 11003,
   "class_distribution": {
     "0": 4152,
-    "1": 4031,
-    "2": 2820
+    "1": 3388,
+    "2": 3463
   },
-  "evaluated_at": "2026-05-13T14:55:26.339230"
+  "evaluated_at": "2026-06-13T20:22:36.606837"
 }
